@@ -75,12 +75,37 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             item.root.setOnLongClickListener {
+                val prefs = getSharedPreferences("app", Context.MODE_PRIVATE)
+                val token = prefs.getString("github_token", null)
+                val user = prefs.getString("github_user", null)
+                val onGithub = token != null && user != null && project.githubRepo.isNotBlank()
                 MaterialAlertDialogBuilder(this)
                     .setTitle(project.name)
-                    .setMessage(R.string.delete_project_q)
+                    .setMessage(
+                        if (onGithub) R.string.delete_project_github_q
+                        else R.string.delete_project_q
+                    )
                     .setPositiveButton(R.string.delete) { _, _ ->
-                        ProjectStore.delete(this, project)
-                        refreshProjects()
+                        if (!onGithub) {
+                            ProjectStore.delete(this, project)
+                            refreshProjects()
+                        } else {
+                            Thread {
+                                val ghOk = GitHubClient.deleteRepo(
+                                    token!!, user!!, project.githubRepo
+                                )
+                                runOnUiThread {
+                                    ProjectStore.delete(this, project)
+                                    refreshProjects()
+                                    android.widget.Toast.makeText(
+                                        this,
+                                        if (ghOk) R.string.deleted_github
+                                        else R.string.deleted_local_only,
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }.start()
+                        }
                     }
                     .setNegativeButton(R.string.cancel, null)
                     .show()

@@ -12,7 +12,7 @@
     <string name="not_linked">غير مرتبط بـ GitHub</string>
 
     <string name="login_title">تسجيل الدخول بـ GitHub</string>
-    <string name="login_explain">اربط التطبيق بحسابك مرة واحدة، وبعدها يُنشأ كل مشروع جديد تلقائياً كمستودع على GitHub دون أن تفتح الموقع.\n\n1. اضغط «فتح صفحة الرمز» وأنشئ رمز دخول بصلاحية repo.\n2. انسخ الرمز والصقه هنا ثم اضغط «دخول».</string>
+    <string name="login_explain">اربط التطبيق بحسابك مرة واحدة، وبعدها يُنشأ كل مشروع جديد تلقائياً كمستودع على GitHub دون أن تفتح الموقع.\n\n1. اضغط «فتح صفحة الرمز» وأنشئ رمز دخول بصلاحيتي repo وdelete_repo.\n2. انسخ الرمز والصقه هنا ثم اضغط «دخول».</string>
     <string name="btn_open_github">فتح صفحة الرمز</string>
     <string name="btn_login">دخول</string>
     <string name="btn_logout">تسجيل الخروج</string>
@@ -64,4 +64,15 @@
     <string name="github_repo_hint">اسم المستودع على GitHub</string>
     <string name="btn_save">حفظ</string>
     <string name="saved">تم الحفظ</string>
+
+    <string name="btn_install">تثبيت التطبيق</string>
+    <string name="build_status_none">لم يبدأ البناء على GitHub بعد</string>
+    <string name="build_status_running">⏳ البناء قيد التشغيل على GitHub…</string>
+    <string name="build_status_success">✅ نجح البناء — يمكنك تثبيت التطبيق الآن</string>
+    <string name="build_status_failure">❌ فشل البناء على GitHub</string>
+    <string name="downloading_apk">جارٍ تنزيل التطبيق من GitHub…</string>
+    <string name="install_failed">تعذّر تنزيل التطبيق. تأكد من نجاح البناء وحاول مجدداً.</string>
+    <string name="deleted_github">تم حذف المشروع من الجهاز ومن GitHub</string>
+    <string name="deleted_local_only">حُذف من الجهاز، وتعذّر حذف مستودعه من GitHub — تأكد أن رمز الدخول يحمل صلاحية delete_repo أو احذفه يدوياً</string>
+    <string name="delete_project_github_q">سيُحذف هذا المشروع نهائياً من الجهاز ومن GitHub معاً. هل أنت متأكد؟</string>
 </resources>

@@ -195,6 +195,23 @@
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
                     android:text="@string/btn_github_upload" />
+
+                <TextView
+                    android:id="@+id/buildStatus"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:textColor="@color/text_secondary" android:textSize="14sp"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInstall"
+                    style="@style/Widget.ScriptStudio.Button.Build"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    app:icon="@android:drawable/stat_sys_download_done"
+                    app:iconGravity="textStart" app:iconTint="#FFFFFF"
+                    android:text="@string/btn_install" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>

@@ -18,7 +18,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.btnOpenGithub.setOnClickListener {
-            val url = "https://github.com/settings/tokens/new?scopes=repo&description=ScriptStudio"
+            val url = "https://github.com/settings/tokens/new?scopes=repo,delete_repo&description=ScriptStudio"
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
             } catch (e: Exception) {

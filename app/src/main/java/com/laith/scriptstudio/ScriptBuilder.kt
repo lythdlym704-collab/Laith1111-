@@ -23,40 +23,8 @@ object ScriptBuilder {
 
     data class BuildResult(val success: Boolean, val summary: String)
 
-    /** ملف بناء جاهز لـ GitHub Actions، حسب نوع الكود. */
-    fun generateWorkflowYml(isWeb: Boolean): String {
-        val artifact = if (isWeb) "web-package" else "script-package"
-        val extra = if (isWeb) "cp script.txt dist/index.html 2>/dev/null || true" else "true"
-        return """
-name: Build Package
-on:
-  push:
-  workflow_dispatch:
-permissions:
-  contents: read
-jobs:
-  package:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Package project
-        run: |
-          mkdir -p dist
-          cp script.txt dist/ 2>/dev/null || true
-          cp index.html dist/ 2>/dev/null || true
-          cp app.json dist/ 2>/dev/null || true
-          cp app-icon.png dist/ 2>/dev/null || true
-          $extra
-          ls -la dist
-      - name: Upload package
-        uses: actions/upload-artifact@v4
-        with:
-          name: $artifact
-          path: dist
-          if-no-files-found: error
-""".trimIndent() + "\n"
-    }
+    /** ملف بناء GitHub Actions: يبني مشروع الأندرويد المولَّد وينتج APK. */
+    fun generateWorkflowYml(isWeb: Boolean): String = AppTemplate.workflowYml()
 
     fun build(context: Context, project: Project, raw: String): BuildResult {
         val script = raw.trim()
@@ -94,11 +62,11 @@ jobs:
             appendLine()
             appendLine("الملفات المولّدة:")
             appendLine("• script.txt — الكود")
-            appendLine("• build.yml — ملف البناء (GitHub Actions)")
+            appendLine("• build.yml — ملف بناء APK (GitHub Actions)")
             appendLine("• app.json — الاسم والصلاحيات")
             appendLine("• README.md — وصف المشروع")
             appendLine()
-            appendLine("ارفع المشروع إلى GitHub ليعمل ملف البناء تلقائياً وينتج الحزمة.")
+            appendLine("ارفع المشروع إلى GitHub ليبنيه وينتج ملف APK قابلاً للتثبيت.")
         }
         return BuildResult(true, summary.trimEnd())
     }
