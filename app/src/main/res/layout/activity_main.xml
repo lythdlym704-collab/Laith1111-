@@ -11,227 +11,95 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:background="@drawable/bg_header"
-            android:paddingStart="20dp"
-            android:paddingEnd="20dp"
-            android:paddingTop="26dp"
-            android:paddingBottom="24dp">
+            android:paddingStart="20dp" android:paddingEnd="20dp"
+            android:paddingTop="26dp" android:paddingBottom="26dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
-
                 <ImageView
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                    android:layout_width="30dp" android:layout_height="30dp"
                     android:src="@drawable/ic_terminal"
                     android:contentDescription="@string/app_name" />
-
                 <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
                     android:text="@string/app_name"
-                    android:textColor="#FFFFFF"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:textColor="#FFFFFF" android:textSize="22sp" android:textStyle="bold" />
             </LinearLayout>
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:text="@string/header_subtitle"
-                android:textColor="#DBE1FF"
-                android:textSize="14sp" />
+                android:textColor="#DBE1FF" android:textSize="14sp" />
         </LinearLayout>
 
-        <!-- Editor card -->
+
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginTop="-14dp"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="6dp">
-
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginStart="16dp" android:layout_marginEnd="16dp"
+            android:layout_marginTop="-12dp"
+            app:cardCornerRadius="18dp" app:cardElevation="5dp">
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/editor_title"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSample"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:text="@string/btn_sample" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnClear"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:text="@string/btn_clear" />
-                </LinearLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    app:boxCornerRadiusTopStart="14dp"
-                    app:boxCornerRadiusTopEnd="14dp"
-                    app:boxCornerRadiusBottomStart="14dp"
-                    app:boxCornerRadiusBottomEnd="14dp">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputScript"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="200dp"
-                        android:gravity="top|start"
-                        android:textDirection="ltr"
-                        android:fontFamily="monospace"
-                        android:textSize="14sp"
-                        android:inputType="textMultiLine|textNoSuggestions|textVisiblePassword"
-                        android:hint="@string/editor_hint"
-                        android:scrollbars="vertical" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Action buttons -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="14dp"
-                    android:baselineAligned="false">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnCheck"
-                        style="@style/Widget.ScriptStudio.Button.Check"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:icon="@android:drawable/ic_menu_search"
-                        app:iconGravity="textStart"
-                        app:iconTint="#FFFFFF"
-                        android:text="@string/btn_check" />
-
-                    <Space
-                        android:layout_width="12dp"
-                        android:layout_height="wrap_content" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnBuild"
-                        style="@style/Widget.ScriptStudio.Button.Build"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:icon="@android:drawable/ic_menu_manage"
-                        app:iconGravity="textStart"
-                        app:iconTint="#FFFFFF"
-                        android:text="@string/btn_build" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Build progress -->
-        <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/progress"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginTop="12dp"
-            android:visibility="gone"
-            app:indicatorColor="@color/brand_build"
-            app:trackCornerRadius="6dp" />
-
-        <!-- Results card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginTop="14dp"
-            android:layout_marginBottom="20dp"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <TextView
-                        android:id="@+id/resultsTitle"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/results_title"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="17sp"
-                        android:textStyle="bold" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnCopy"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:visibility="gone"
-                        android:text="نسخ" />
-                </LinearLayout>
-
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="14dp">
                 <TextView
-                    android:id="@+id/resultsText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/bg_code"
-                    android:fontFamily="monospace"
-                    android:textDirection="locale"
-                    android:textColor="@color/code_text"
-                    android:textSize="13sp"
-                    android:lineSpacingMultiplier="1.25"
-                    android:text="@string/results_placeholder"
-                    android:textIsSelectable="true" />
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/github_title"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp" android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/githubStatusMain"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/text_secondary" android:textSize="13sp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGithubLogin"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/login_title" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNewProject"
+            style="@style/Widget.ScriptStudio.Button.Build"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp" android:layout_marginEnd="16dp"
+            android:layout_marginTop="16dp"
+            app:icon="@android:drawable/ic_input_add"
+            app:iconGravity="textStart" app:iconTint="#FFFFFF"
+            android:text="@string/btn_new_project" />
+
+        <TextView
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="20dp" android:layout_marginTop="18dp"
+            android:text="@string/my_projects"
+            android:textColor="?attr/colorOnSurface" android:textSize="17sp" android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/emptyText"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:text="@string/no_projects"
+            android:textColor="@color/text_secondary" android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/projectsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp" android:paddingEnd="16dp"
+            android:paddingBottom="24dp" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

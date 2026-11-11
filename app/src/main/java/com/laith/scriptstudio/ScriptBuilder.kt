@@ -8,88 +8,103 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * يحزم السكربت في حزمة قابلة للتشغيل داخل مجلد التطبيق،
- * وينشئ ملف manifest يصف الحزمة. لا يمكن للهاتف تجميع APK من
- * سكربت عشوائي، لذا هذه الخطوة تُجهّز وتوثّق الحزمة بشكل احترافي.
+ * يولّد ملف البناء (GitHub Actions workflow) ويجهّز حزمة المشروع
+ * داخل مجلده: script.txt + app.json + build.yml + README.md.
  */
 object ScriptBuilder {
 
-    data class BuildResult(
-        val success: Boolean,
-        val summary: String,
-        val outputDir: String
-    )
-
     val steps = listOf(
-        "تحليل السكربت",
+        "تحليل الكود",
         "التحقق من الصحة",
-        "تجهيز الموارد",
-        "حزم الملفات",
-        "توليد البصمة والتوقيع"
+        "توليد ملف البناء",
+        "كتابة بيانات التطبيق",
+        "حزم الملفات وتوليد البصمة"
     )
 
-    fun build(context: Context, raw: String, appName: String): BuildResult {
+    data class BuildResult(val success: Boolean, val summary: String)
+
+    /** ملف بناء جاهز لـ GitHub Actions، حسب نوع الكود. */
+    fun generateWorkflowYml(isWeb: Boolean): String {
+        val artifact = if (isWeb) "web-package" else "script-package"
+        val extra = if (isWeb) "cp script.txt dist/index.html 2>/dev/null || true" else "true"
+        return """
+name: Build Package
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Package project
+        run: |
+          mkdir -p dist
+          cp script.txt dist/ 2>/dev/null || true
+          cp index.html dist/ 2>/dev/null || true
+          cp app.json dist/ 2>/dev/null || true
+          cp app-icon.png dist/ 2>/dev/null || true
+          $extra
+          ls -la dist
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: $artifact
+          path: dist
+          if-no-files-found: error
+""".trimIndent() + "\n"
+    }
+
+    fun build(context: Context, project: Project, raw: String): BuildResult {
         val script = raw.trim()
         if (script.isEmpty()) {
-            return BuildResult(false, "السكربت فارغ — لا يمكن البناء.", "")
+            return BuildResult(false, "الكود فارغ — لا يمكن البناء.")
         }
 
-        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-        val outDir = File(context.filesDir, "builds/build-$stamp").apply { mkdirs() }
+        val cls = ScriptAnalyzer.classify(script)
+        val dir = project.dir(context).apply { mkdirs() }
 
-        val scriptFile = File(outDir, "script.txt")
-        scriptFile.writeText(script)
+        project.scriptFile(context).writeText(script)
+        project.buildYmlFile(context).writeText(generateWorkflowYml(cls.isWeb))
+        File(dir, "app.json").writeText(project.appJson())
 
         val hash = sha256(script)
-        val lines = script.lines().size
-
-        val manifest = """
-            {
-              "app_name": "${appName.jsonSafe()}",
-              "package": "com.laith.scriptstudio.pkg",
-              "built_at": "${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())}",
-              "source_lines": $lines,
-              "source_bytes": ${script.toByteArray().size},
-              "sha256": "$hash",
-              "entry": "script.txt",
-              "builder": "ScriptStudio 1.0"
-            }
-        """.trimIndent()
-        File(outDir, "manifest.json").writeText(manifest)
-
-        val readme = buildString {
-            appendLine("# حزمة $appName")
+        File(dir, "README.md").writeText(buildString {
+            appendLine("# ${project.appName}")
             appendLine()
-            appendLine("أُنشئت بواسطة ستوديو السكربت.")
-            appendLine("- الملف الرئيسي: script.txt")
-            appendLine("- الوصف: manifest.json")
+            appendLine("مشروع من تطبيق ستوديو السكربت.")
+            appendLine()
+            appendLine("- النوع: ${cls.label}")
+            appendLine("- الصلاحيات: ${if (project.permissions.isEmpty()) "لا شيء" else project.permissions.joinToString("، ")}")
             appendLine("- البصمة (SHA-256): $hash")
-        }
-        File(outDir, "README.md").writeText(readme)
+            appendLine("- آخر بناء: ${SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date())}")
+        })
 
         val summary = buildString {
-            appendLine("✅ تم تجهيز الحزمة بنجاح")
+            appendLine("✅ تم البناء بنجاح")
             appendLine()
-            appendLine("الاسم   : $appName")
-            appendLine("الأسطر  : $lines")
-            appendLine("البصمة  : ${hash.take(16)}…")
-            appendLine("الملفات : script.txt، manifest.json، README.md")
+            appendLine("النوع     : ${cls.label}")
+            appendLine("الاسم     : ${project.appName}")
+            appendLine("الأسطر    : ${script.lines().size}")
+            appendLine("الصلاحيات : ${if (project.permissions.isEmpty()) "لا شيء" else project.permissions.joinToString("، ")}")
+            appendLine("البصمة    : ${hash.take(16)}…")
             appendLine()
-            appendLine("المسار:")
-            appendLine(outDir.absolutePath)
+            appendLine("الملفات المولّدة:")
+            appendLine("• script.txt — الكود")
+            appendLine("• build.yml — ملف البناء (GitHub Actions)")
+            appendLine("• app.json — الاسم والصلاحيات")
+            appendLine("• README.md — وصف المشروع")
             appendLine()
-            appendLine("ملاحظة: الهاتف لا يُجمّع APK من سكربت مباشرةً. لإنتاج")
-            appendLine("ملف APK قابل للتثبيت، استخدم بناء المشروع عبر GitHub Actions.")
+            appendLine("ارفع المشروع إلى GitHub ليعمل ملف البناء تلقائياً وينتج الحزمة.")
         }
-
-        return BuildResult(true, summary.trimEnd(), outDir.absolutePath)
+        return BuildResult(true, summary.trimEnd())
     }
 
     private fun sha256(text: String): String {
         val bytes = MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
         return bytes.joinToString("") { "%02x".format(it) }
     }
-
-    private fun String.jsonSafe(): String =
-        replace("\\", "\\\\").replace("\"", "\\\"")
 }
