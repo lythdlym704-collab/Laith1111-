@@ -142,19 +142,44 @@ package com.scriptstudio.generated
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
+import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.appcompat.app.AppCompatActivity
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
+
+    private var tts: TextToSpeech? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        tts = TextToSpeech(this) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts?.language = Locale("ar")
+            }
+        }
         val webView = WebView(this)
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
+        webView.settings.mediaPlaybackRequiresUserGesture = false
+        webView.addJavascriptInterface(JsBridge(), "Android")
         webView.loadUrl("file:///android_asset/index.html")
         setContentView(webView)
+    }
+
+    inner class JsBridge {
+        @JavascriptInterface
+        fun speak(text: String) {
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "msg")
+        }
+    }
+
+    override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        super.onDestroy()
     }
 }
 """.trimIndent() + "\n"
