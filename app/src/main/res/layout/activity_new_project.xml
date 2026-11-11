@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="?android:colorBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_header"
+            android:padding="22dp">
+            <TextView
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/new_project_title"
+                android:textColor="#FFFFFF" android:textSize="20sp" android:textStyle="bold" />
+            <TextView
+                android:id="@+id/stepLabel"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/step1_title"
+                android:textColor="#DBE1FF" android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- الخطوة ١: الاسم والصورة -->
+        <LinearLayout
+            android:id="@+id/step1"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                app:cardCornerRadius="20dp" app:cardElevation="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:hint="@string/project_name_hint">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputProjectName"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:inputType="text" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:hint="@string/app_name_hint">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputAppName"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:inputType="text" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="@string/app_image"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="15sp" android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginTop="8dp">
+                        <ImageView
+                            android:id="@+id/iconPreview"
+                            android:layout_width="84dp" android:layout_height="84dp"
+                            android:background="@drawable/bg_header"
+                            android:padding="16dp"
+                            android:src="@drawable/ic_terminal"
+                            android:scaleType="centerCrop"
+                            android:contentDescription="@string/app_image" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnPickImage"
+                            style="@style/Widget.Material3.Button.TonalButton"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:text="@string/btn_pick_image" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNext"
+                style="@style/Widget.ScriptStudio.Button.Check"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginStart="16dp" android:layout_marginEnd="16dp"
+                android:layout_marginBottom="20dp"
+                android:text="@string/btn_next" />
+        </LinearLayout>
+
+        <!-- الخطوة ٢: السكربت ومتطلبات البناء -->
+        <LinearLayout
+            android:id="@+id/step2"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:visibility="gone">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                app:cardCornerRadius="20dp" app:cardElevation="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="@string/editor_title"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="15sp" android:textStyle="bold" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inputScript"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:minHeight="170dp"
+                            android:gravity="top|start" android:textDirection="ltr"
+                            android:fontFamily="monospace" android:textSize="14sp"
+                            android:inputType="textMultiLine|textNoSuggestions|textVisiblePassword"
+                            android:hint="@string/editor_hint" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="@string/build_reqs_title"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="15sp" android:textStyle="bold" />
+
+                    <CheckBox android:id="@+id/chkInternet" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="@string/perm_internet" />
+                    <CheckBox android:id="@+id/chkCamera" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="@string/perm_camera" />
+                    <CheckBox android:id="@+id/chkStorage" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="@string/perm_storage" />
+                    <CheckBox android:id="@+id/chkLocation" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="@string/perm_location" />
+                    <CheckBox android:id="@+id/chkMic" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="@string/perm_mic" />
+                    <CheckBox android:id="@+id/chkNotif" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:text="@string/perm_notif" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/createProgress"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginStart="24dp" android:layout_marginEnd="24dp"
+                android:visibility="gone" android:indeterminate="true"
+                app:indicatorColor="@color/brand_build" app:trackCornerRadius="6dp" />
+
+            <TextView
+                android:id="@+id/createStatus"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="24dp" android:layout_marginTop="6dp"
+                android:textColor="@color/text_secondary" android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCreateProject"
+                style="@style/Widget.ScriptStudio.Button.Build"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginStart="16dp" android:layout_marginEnd="16dp"
+                android:layout_marginTop="8dp" android:layout_marginBottom="20dp"
+                android:text="@string/btn_create_project" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

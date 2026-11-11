@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ستوديو السكربت</string>
+    <string name="header_subtitle">أنشئ مشروعاً، افحص كودك، وابنِه واربطه بـ GitHub</string>
+
+    <string name="btn_new_project">إنشاء مشروع جديد</string>
+    <string name="my_projects">مشاريعي</string>
+    <string name="no_projects">لا توجد مشاريع بعد. اضغط «إنشاء مشروع جديد» للبدء.</string>
+    <string name="delete">حذف</string>
+    <string name="cancel">إلغاء</string>
+    <string name="delete_project_q">هل تريد حذف هذا المشروع نهائياً؟</string>
+    <string name="not_linked">غير مرتبط بـ GitHub</string>
+
+    <string name="login_title">تسجيل الدخول بـ GitHub</string>
+    <string name="login_explain">اربط التطبيق بحسابك مرة واحدة، وبعدها يُنشأ كل مشروع جديد تلقائياً كمستودع على GitHub دون أن تفتح الموقع.\n\n1. اضغط «فتح صفحة الرمز» وأنشئ رمز دخول بصلاحيتي repo وdelete_repo.\n2. انسخ الرمز والصقه هنا ثم اضغط «دخول».</string>
+    <string name="btn_open_github">فتح صفحة الرمز</string>
+    <string name="btn_login">دخول</string>
+    <string name="btn_logout">تسجيل الخروج</string>
+    <string name="login_out">غير مسجّل الدخول — سجّل لتُنشأ مستودعاتك تلقائياً</string>
+    <string name="login_checking">جارٍ التحقق من الرمز…</string>
+    <string name="login_invalid">الرمز غير صالح. تأكد منه وحاول مجدداً.</string>
+    <string name="github_token_hint">الصق رمز الدخول هنا</string>
+
+    <string name="new_project_title">إنشاء مشروع جديد</string>
+    <string name="step1_title">١ — بيانات التطبيق</string>
+    <string name="step2_title">٢ — السكربت ومتطلبات البناء</string>
+    <string name="project_name_hint">اسم المشروع</string>
+    <string name="app_name_hint">اسم التطبيق</string>
+    <string name="app_image">صورة التطبيق</string>
+    <string name="btn_pick_image">اختيار صورة</string>
+    <string name="btn_next">التالي</string>
+    <string name="btn_create_project">إنشاء المشروع</string>
+    <string name="name_required">اكتب اسم المشروع أولاً</string>
+    <string name="creating_repo">جارٍ إنشاء المستودع على GitHub…</string>
+
+    <string name="editor_title">محرر السكربت</string>
+    <string name="editor_hint">الصق الكود أو السكربت الكامل هنا…</string>
+    <string name="build_reqs_title">متطلبات البناء (الصلاحيات)</string>
+    <string name="btn_check">فحص الكود</string>
+    <string name="btn_build">بناء</string>
+    <string name="btn_clear">مسح</string>
+    <string name="btn_sample">نموذج</string>
+    <string name="btn_copy">نسخ</string>
+    <string name="results_title">النتيجة</string>
+    <string name="results_placeholder">اضغط «فحص الكود» ليخبرك التطبيق ماذا يفعل الكود وهل هو تطبيق أم صفحة ويب، أو «بناء» لتوليد ملف البناء وتجهيز الحزمة.</string>
+    <string name="empty_script">الكود فارغ. الصق الكود أولاً.</string>
+    <string name="copied">تم نسخ النتيجة</string>
+    <string name="build_done">اكتمل البناء بنجاح</string>
+    <string name="settings">الإعدادات</string>
+
+    <string name="github_title">GitHub</string>
+    <string name="btn_github_upload">رفع المشروع إلى GitHub</string>
+    <string name="github_need_login">سجّل الدخول بـ GitHub من الشاشة الرئيسية أولاً</string>
+    <string name="github_uploading">جارٍ الرفع إلى GitHub…</string>
+
+    <string name="settings_title">إعدادات المشروع</string>
+    <string name="permissions_title">صلاحيات التطبيق</string>
+    <string name="perm_internet">الإنترنت</string>
+    <string name="perm_camera">الكاميرا</string>
+    <string name="perm_storage">التخزين</string>
+    <string name="perm_location">الموقع</string>
+    <string name="perm_mic">الميكروفون</string>
+    <string name="perm_notif">الإشعارات</string>
+    <string name="github_repo_hint">اسم المستودع على GitHub</string>
+    <string name="btn_save">حفظ</string>
+    <string name="saved">تم الحفظ</string>
+
+    <string name="btn_install">تثبيت التطبيق</string>
+    <string name="build_status_none">لم يبدأ البناء على GitHub بعد</string>
+    <string name="build_status_running">⏳ البناء قيد التشغيل على GitHub…</string>
+    <string name="build_status_success">✅ نجح البناء — يمكنك تثبيت التطبيق الآن</string>
+    <string name="build_status_failure">❌ فشل البناء على GitHub</string>
+    <string name="downloading_apk">جارٍ تنزيل التطبيق من GitHub…</string>
+    <string name="install_failed">تعذّر تنزيل التطبيق. تأكد من نجاح البناء وحاول مجدداً.</string>
+    <string name="deleted_github">تم حذف المشروع من الجهاز ومن GitHub</string>
+    <string name="deleted_local_only">حُذف من الجهاز، وتعذّر حذف مستودعه من GitHub — تأكد أن رمز الدخول يحمل صلاحية delete_repo أو احذفه يدوياً</string>
+    <string name="delete_project_github_q">سيُحذف هذا المشروع نهائياً من الجهاز ومن GitHub معاً. هل أنت متأكد؟</string>
+</resources>
