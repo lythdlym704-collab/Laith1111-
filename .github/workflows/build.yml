@@ -1,4 +1,4 @@
-name: Build Android APK
+name: بناء تطبيق أندرويد (APK)
 
 on:
   push:
@@ -9,74 +9,13 @@ permissions:
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
-      - name: Download repository
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Extract ZIP and find project
-        id: project
-        shell: python
-        run: |
-          import os
-          import pathlib
-          import zipfile
-
-          workspace = pathlib.Path(os.environ["GITHUB_WORKSPACE"])
-          archive_name = "3a4ef938d6a2409383550c6a36dd1c39.zip"
-
-          archives = list(workspace.rglob(archive_name))
-
-          if not archives:
-              raise SystemExit(
-                  "ZIP file not found: " + archive_name
-              )
-
-          extracted = (
-              pathlib.Path(os.environ["RUNNER_TEMP"])
-              / "extracted-project"
-          )
-          extracted.mkdir(parents=True, exist_ok=True)
-
-          with zipfile.ZipFile(archives[0]) as archive:
-              archive.extractall(extracted)
-
-          projects = set()
-
-          for settings_name in (
-              "settings.gradle",
-              "settings.gradle.kts",
-          ):
-              for settings in extracted.rglob(settings_name):
-                  folder = settings.parent
-
-                  groovy = folder / "app" / "build.gradle"
-                  kotlin = folder / "app" / "build.gradle.kts"
-
-                  if groovy.is_file() or kotlin.is_file():
-                      projects.add(folder)
-
-          if not projects:
-              raise SystemExit(
-                  "No Android Gradle project found inside ZIP."
-              )
-
-          if len(projects) != 1:
-              raise SystemExit(
-                  "More than one Android project found inside ZIP."
-              )
-
-          project = next(iter(projects))
-          print("Project directory:", project)
-
-          with open(
-              os.environ["GITHUB_OUTPUT"],
-              "a",
-              encoding="utf-8",
-          ) as output:
-              print("dir=" + str(project), file=output)
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -89,46 +28,23 @@ jobs:
         with:
           packages: "platform-tools platforms;android-35 build-tools;35.0.0"
 
-      - name: Set up Gradle 8.7
+      - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
 
       - name: Build debug APK
-        env:
-          PROJECT_DIR: ${{ steps.project.outputs.dir }}
-        run: gradle --project-dir "$PROJECT_DIR" --no-daemon --stacktrace :app:assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
 
-      - name: Collect APK
-        shell: python
-        env:
-          PROJECT_DIR: ${{ steps.project.outputs.dir }}
+      - name: Rename APK
         run: |
-          import os
-          import pathlib
-          import shutil
-
-          project = pathlib.Path(os.environ["PROJECT_DIR"])
-          destination = (
-              pathlib.Path(os.environ["GITHUB_WORKSPACE"])
-              / "apk-output"
-          )
-          destination.mkdir(parents=True, exist_ok=True)
-
-          apk_folder = (
-              project / "app" / "build" / "outputs" / "apk" / "debug"
-          )
-          apks = list(apk_folder.glob("*.apk"))
-
-          if not apks:
-              raise SystemExit("Build produced no debug APK.")
-
-          for apk in apks:
-              shutil.copy2(apk, destination / apk.name)
+          mkdir -p apk-output
+          cp app/build/outputs/apk/debug/app-debug.apk "apk-output/ScriptStudio-debug.apk"
+          ls -lh apk-output
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: ScriptAPK-debug
+          name: ScriptStudio-APK
           path: apk-output/*.apk
           if-no-files-found: error

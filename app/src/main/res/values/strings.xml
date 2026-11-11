@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ستوديو السكربت</string>
+    <string name="header_subtitle">حرّر سكربتك، افحص ماذا يفعل، ثم ابنِه</string>
+    <string name="editor_title">محرر السكربت</string>
+    <string name="editor_hint">الصق السكربت الكامل هنا…</string>
+    <string name="btn_check">فحص السكربت</string>
+    <string name="btn_build">بناء التطبيق</string>
+    <string name="btn_clear">مسح</string>
+    <string name="btn_sample">نموذج</string>
+    <string name="results_title">النتيجة</string>
+    <string name="results_placeholder">اكتب سكربتاً ثم اضغط «فحص السكربت» لعرض تحليل كامل لما يفعله، أو «بناء التطبيق» لتجميعه.</string>
+    <string name="empty_script">السكربت فارغ. الصق سكربتاً أولاً.</string>
+    <string name="copied">تم نسخ النتيجة</string>
+    <string name="build_done">اكتمل البناء بنجاح</string>
+</resources>
