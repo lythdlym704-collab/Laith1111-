@@ -234,20 +234,42 @@ object GitHubClient {
             return UploadResult(false, "تعذّر إنشاء المستودع على GitHub")
         }
 
-        val script = project.scriptFile(context).takeIf { it.isFile }?.readText().orEmpty()
-        val cls = ScriptAnalyzer.classify(script)
         val appId = AppTemplate.appId(repo)
         val hasIcon = project.iconFile(context).isFile
+        val userFiles = project.listUserFiles(context)
+        val textExtensions = setOf(
+            "html", "htm", "js", "css", "txt", "json", "md", "py", "sh", "xml", "csv"
+        )
 
         val files = mutableListOf<Pair<String, ByteArray>>()
         fun add(path: String, text: String) {
             files.add(path to text.toByteArray(Charsets.UTF_8))
         }
 
-        add("script.txt", script)
+        // كل ملفات المستخدم تدخل داخل التطبيق المولَّد
+        var hasIndex = false
+        for (f in userFiles) {
+            files.add("app/src/main/assets/" + f.name to f.readBytes())
+            if (f.name.equals("index.html", ignoreCase = true)) hasIndex = true
+        }
+        if (!hasIndex) {
+            val mainText = userFiles
+                .firstOrNull { it.extension.lowercase() in textExtensions }
+                ?.let { runCatching { it.readText() }.getOrNull() }
+            val page = if (mainText != null && ScriptAnalyzer.classify(mainText).isWeb) {
+                mainText
+            } else {
+                AppTemplate.indexHtml(
+                    project.appName,
+                    mainText ?: "أضف ملفات تطبيقك من ستوديو السكربت.",
+                    false
+                )
+            }
+            add("app/src/main/assets/index.html", page)
+        }
+
         add("app.json", project.appJson())
-        val readme = File(project.dir(context), "README.md")
-        if (readme.isFile) files.add("README.md" to readme.readBytes())
+        add("README.md", "# " + project.appName + "\n\nمشروع من تطبيق ستوديو السكربت.\n")
 
         add("settings.gradle", AppTemplate.settingsGradle())
         add("build.gradle", AppTemplate.rootBuildGradle())
@@ -270,11 +292,10 @@ object GitHubClient {
             add("app/src/main/res/drawable/launcher_fg.xml", AppTemplate.iconFgVector())
             deleteFileIfExists(token, user, repo, "app/src/main/res/drawable/launcher_fg.png")
         }
-        add(
-            "app/src/main/assets/index.html",
-            AppTemplate.indexHtml(project.appName, script, cls.isWeb)
-        )
-        add(".github/workflows/build.yml", AppTemplate.workflowYml())
+
+        // ملف البناء التلقائي يُرفع دائماً مع كل مشروع
+        add(".github/workflows/build-apk.yml", AppTemplate.workflowYml())
+        deleteFileIfExists(token, user, repo, ".github/workflows/build.yml")
 
         // كل الملفات تُرفع بوسم [skip ci] حتى لا يبدأ بناء لكل ملف،
         // ثم دفعة أخيرة واحدة تُطلق بناءً واحداً فقط.
@@ -302,11 +323,12 @@ object GitHubClient {
         return if (failed.isEmpty()) {
             UploadResult(true, "تم رفع المشروع، وبدأ GitHub ببناء ملف APK\n" + url, url)
         } else {
-            UploadResult(
-                false,
-                "اكتمل الرفع جزئياً. فشل رفع: " + failed.joinToString("، ") + "\n" + url,
-                url
-            )
+            var msg = "اكتمل الرفع جزئياً. فشل رفع: " + failed.joinToString("، ") + "\n" + url
+            if (failed.any { it.startsWith(".github/workflows/") }) {
+                msg += "\n\nتنبيه: فشل رفع ملف البناء التلقائي. سجّل الخروج ثم سجّل الدخول" +
+                    " برمز جديد يحمل صلاحية workflow."
+            }
+            UploadResult(false, msg, url)
         }
     }
 }

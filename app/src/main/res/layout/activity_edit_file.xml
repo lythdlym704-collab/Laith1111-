@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="?android:colorBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_header"
+            android:padding="20dp">
+            <TextView
+                android:id="@+id/editTitle"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/edit_file_title"
+                android:textColor="#FFFFFF" android:textSize="20sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            app:cardCornerRadius="20dp" app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:hint="@string/file_name_hint">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/inputFileName"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:inputType="text" android:textDirection="ltr"
+                        android:fontFamily="monospace" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:hint="@string/file_code_hint">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/inputFileCode"
+                        android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:minHeight="320dp"
+                        android:gravity="top|start" android:textDirection="ltr"
+                        android:fontFamily="monospace" android:textSize="14sp"
+                        android:inputType="textMultiLine|textNoSuggestions|textVisiblePassword"
+                        android:scrollbars="vertical" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveFile"
+                    style="@style/Widget.ScriptStudio.Button.Build"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/btn_save_file" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

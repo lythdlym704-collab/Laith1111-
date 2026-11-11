@@ -19,6 +19,15 @@ data class Project(
     fun iconFile(context: Context): File = File(dir(context), "icon.png")
     fun buildYmlFile(context: Context): File = File(dir(context), "build.yml")
 
+    /** مجلد ملفات التطبيق التي ينشئها أو يستوردها المستخدم. */
+    fun userFilesDir(context: Context): File =
+        File(dir(context), "files").apply { mkdirs() }
+
+    fun listUserFiles(context: Context): List<File> =
+        userFilesDir(context).listFiles { f -> f.isFile }
+            ?.sortedBy { it.name.lowercase() }
+            ?: emptyList()
+
     fun toJson(): JSONObject = JSONObject()
         .put("id", id)
         .put("name", name)

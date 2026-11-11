@@ -12,7 +12,7 @@
     <string name="not_linked">غير مرتبط بـ GitHub</string>
 
     <string name="login_title">تسجيل الدخول بـ GitHub</string>
-    <string name="login_explain">اربط التطبيق بحسابك مرة واحدة، وبعدها يُنشأ كل مشروع جديد تلقائياً كمستودع على GitHub دون أن تفتح الموقع.\n\n1. اضغط «فتح صفحة الرمز» وأنشئ رمز دخول بصلاحيتي repo وdelete_repo.\n2. انسخ الرمز والصقه هنا ثم اضغط «دخول».</string>
+    <string name="login_explain">اربط التطبيق بحسابك مرة واحدة، وبعدها يُنشأ كل مشروع جديد تلقائياً كمستودع على GitHub دون أن تفتح الموقع.\n\n1. اضغط «فتح صفحة الرمز» وأنشئ رمز دخول بصلاحيات repo وworkflow وdelete_repo.\n2. انسخ الرمز والصقه هنا ثم اضغط «دخول».</string>
     <string name="btn_open_github">فتح صفحة الرمز</string>
     <string name="btn_login">دخول</string>
     <string name="btn_logout">تسجيل الخروج</string>
@@ -23,7 +23,7 @@
 
     <string name="new_project_title">إنشاء مشروع جديد</string>
     <string name="step1_title">١ — بيانات التطبيق</string>
-    <string name="step2_title">٢ — السكربت ومتطلبات البناء</string>
+    <string name="step2_title">٢ — الصلاحيات ومتطلبات البناء</string>
     <string name="project_name_hint">اسم المشروع</string>
     <string name="app_name_hint">اسم التطبيق</string>
     <string name="app_image">صورة التطبيق</string>
@@ -42,7 +42,7 @@
     <string name="btn_sample">نموذج</string>
     <string name="btn_copy">نسخ</string>
     <string name="results_title">النتيجة</string>
-    <string name="results_placeholder">اضغط «فحص الكود» ليخبرك التطبيق ماذا يفعل الكود وهل هو تطبيق أم صفحة ويب، أو «بناء» لتوليد ملف البناء وتجهيز الحزمة.</string>
+    <string name="results_placeholder">أضف ملفات تطبيقك بزر +، ثم «فحص الكود» ليخبرك ماذا يفعل وهل هو تطبيق أم صفحة ويب، أو ارفعه ليُبنى APK وتثبّته من هنا.</string>
     <string name="empty_script">الكود فارغ. الصق الكود أولاً.</string>
     <string name="copied">تم نسخ النتيجة</string>
     <string name="build_done">اكتمل البناء بنجاح</string>
@@ -75,4 +75,20 @@
     <string name="deleted_github">تم حذف المشروع من الجهاز ومن GitHub</string>
     <string name="deleted_local_only">حُذف من الجهاز، وتعذّر حذف مستودعه من GitHub — تأكد أن رمز الدخول يحمل صلاحية delete_repo أو احذفه يدوياً</string>
     <string name="delete_project_github_q">سيُحذف هذا المشروع نهائياً من الجهاز ومن GitHub معاً. هل أنت متأكد؟</string>
+
+    <string name="files_title">ملفات التطبيق</string>
+    <string name="add_create">إنشاء ملف</string>
+    <string name="add_import">استيراد ملف من الجهاز</string>
+    <string name="no_files">لا توجد ملفات بعد. اضغط + ثم «إنشاء ملف» أو «استيراد ملف من الجهاز».</string>
+    <string name="file_name_hint">اسم الملف (مثل index.html)</string>
+    <string name="file_code_hint">اكتب كود هذا الملف هنا…</string>
+    <string name="btn_save_file">حفظ الملف</string>
+    <string name="edit_file_title">ملف</string>
+    <string name="delete_file_q">هل تريد حذف هذا الملف؟</string>
+    <string name="file_name_required">اكتب اسم الملف أولاً</string>
+    <string name="import_failed">تعذّر استيراد الملف</string>
+    <string name="step2_hint">بعد إنشاء المشروع اضغط زر + داخل «ملفات التطبيق»: أنشئ ملفاً باسم وكود، أو استورد ملفات جاهزة من جهازك، ثم ارفع المشروع ليُبنى APK.</string>
+    <string name="workflow_scope_hint">
+
+تنبيه: فشل رفع ملف البناء التلقائي. سجّل الخروج ثم سجّل الدخول برمز جديد يحمل صلاحية workflow.</string>
 </resources>

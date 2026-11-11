@@ -68,59 +68,38 @@
                     <TextView
                         android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="@string/editor_title"
+                        android:text="@string/files_title"
                         android:textColor="?attr/colorOnSurface"
                         android:textSize="17sp" android:textStyle="bold" />
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnSample"
-                        style="@style/Widget.Material3.Button.TextButton"
+                        android:id="@+id/btnAddFile"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:minWidth="0dp" android:text="@string/btn_sample" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnClear"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:minWidth="0dp" android:text="@string/btn_clear" />
+                        android:minWidth="52dp"
+                        android:text="+"
+                        android:textSize="22sp" android:textStyle="bold" />
                 </LinearLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
+                <TextView
+                    android:id="@+id/emptyFiles"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    app:boxCornerRadiusTopStart="14dp" app:boxCornerRadiusTopEnd="14dp"
-                    app:boxCornerRadiusBottomStart="14dp" app:boxCornerRadiusBottomEnd="14dp">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/inputScript"
-                        android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:minHeight="190dp"
-                        android:gravity="top|start" android:textDirection="ltr"
-                        android:fontFamily="monospace" android:textSize="14sp"
-                        android:inputType="textMultiLine|textNoSuggestions|textVisiblePassword"
-                        android:hint="@string/editor_hint" android:scrollbars="vertical" />
-                </com.google.android.material.textfield.TextInputLayout>
+                    android:text="@string/no_files"
+                    android:textColor="@color/text_secondary" android:textSize="13sp" />
 
                 <LinearLayout
+                    android:id="@+id/filesContainer"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:layout_marginTop="14dp"
-                    android:baselineAligned="false">
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnCheck"
-                        style="@style/Widget.ScriptStudio.Button.Check"
-                        android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:icon="@android:drawable/ic_menu_search"
-                        app:iconGravity="textStart" app:iconTint="#FFFFFF"
-                        android:text="@string/btn_check" />
-                    <Space android:layout_width="12dp" android:layout_height="wrap_content" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnBuild"
-                        style="@style/Widget.ScriptStudio.Button.Build"
-                        android:layout_width="0dp" android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        app:icon="@android:drawable/ic_menu_manage"
-                        app:iconGravity="textStart" app:iconTint="#FFFFFF"
-                        android:text="@string/btn_build" />
-                </LinearLayout>
+                    android:orientation="vertical" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCheck"
+                    style="@style/Widget.ScriptStudio.Button.Check"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    app:icon="@android:drawable/ic_menu_search"
+                    app:iconGravity="textStart" app:iconTint="#FFFFFF"
+                    android:text="@string/btn_check" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -75,20 +75,13 @@ class NewProjectActivity : AppCompatActivity() {
     private fun createProject() {
         val name = binding.inputProjectName.text?.toString()?.trim().orEmpty()
         val appName = binding.inputAppName.text?.toString()?.trim().orEmpty()
-        val script = binding.inputScript.text?.toString().orEmpty()
 
         val project = ProjectStore.create(this, name)
         project.appName = appName.ifBlank { name }
         project.permissions = selectedPermissions()
         ProjectStore.save(this, project)
 
-        project.scriptFile(this).writeText(script)
         iconTemp?.takeIf { it.isFile }?.copyTo(project.iconFile(this), overwrite = true)
-        if (script.isNotBlank()) {
-            ScriptBuilder.build(this, project, script)
-        } else {
-            project.buildYmlFile(this).writeText(ScriptBuilder.generateWorkflowYml(false))
-        }
 
         val prefs = getSharedPreferences("app", Context.MODE_PRIVATE)
         val token = prefs.getString("github_token", null)

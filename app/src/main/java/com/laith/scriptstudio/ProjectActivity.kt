@@ -8,13 +8,17 @@ import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.OpenableColumns
+import android.view.LayoutInflater
 import android.view.View
-import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.laith.scriptstudio.databinding.ActivityProjectBinding
+import com.laith.scriptstudio.databinding.ItemFileBinding
 import java.io.File
 import java.util.zip.ZipInputStream
 
@@ -26,6 +30,32 @@ class ProjectActivity : AppCompatActivity() {
     private var busy = false
     private var pollRunnable: Runnable? = null
     private var pollTries = 0
+
+    private val textExtensions = setOf(
+        "html", "htm", "js", "css", "txt", "json", "md", "py", "sh", "xml", "csv"
+    )
+
+    private val importFile =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            val p = project ?: return@registerForActivityResult
+            if (uri == null) return@registerForActivityResult
+            try {
+                var name = "file-" + System.currentTimeMillis()
+                contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (idx >= 0 && cursor.moveToFirst()) {
+                        cursor.getString(idx)?.let { name = it }
+                    }
+                }
+                name = name.replace(Regex("""[/\\:*?"<>|]"""), "_")
+                contentResolver.openInputStream(uri)?.use { input ->
+                    File(p.userFilesDir(this), name).outputStream().use { input.copyTo(it) }
+                }
+                refreshFiles()
+            } catch (e: Exception) {
+                Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,10 +69,8 @@ class ProjectActivity : AppCompatActivity() {
                 )
             }
         }
+        binding.btnAddFile.setOnClickListener { showAddMenu() }
         binding.btnCheck.setOnClickListener { onCheck() }
-        binding.btnBuild.setOnClickListener { onBuild() }
-        binding.btnClear.setOnClickListener { binding.inputScript.setText("") }
-        binding.btnSample.setOnClickListener { binding.inputScript.setText(SAMPLE) }
         binding.btnCopy.setOnClickListener { copyResult() }
         binding.btnGithubUpload.setOnClickListener { onUpload() }
         binding.btnInstall.setOnClickListener { onInstall() }
@@ -53,6 +81,7 @@ class ProjectActivity : AppCompatActivity() {
         val id = intent.getStringExtra("id") ?: return finish()
         val p = ProjectStore.load(this, id) ?: return finish()
         project = p
+        migrateLegacyScript(p)
         binding.headerName.text = p.appName.ifBlank { p.name }
         binding.headerSub.text =
             if (p.permissions.isEmpty()) "بدون صلاحيات"
@@ -68,11 +97,7 @@ class ProjectActivity : AppCompatActivity() {
             p.githubRepo.isBlank() -> getString(R.string.not_linked)
             else -> "المستودع: $user/${p.githubRepo}"
         }
-        if (binding.inputScript.text.isNullOrEmpty()) {
-            val f = p.scriptFile(this)
-            if (f.isFile) binding.inputScript.setText(f.readText())
-        }
-        // تحقق واحد من حالة البناء إذا كان المشروع مرتبطاً
+        refreshFiles()
         if (user != null && p.githubRepo.isNotBlank()) {
             checkBuildOnce()
         }
@@ -81,7 +106,19 @@ class ProjectActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         stopPolling()
-        saveScript()
+    }
+
+    /** نقل مشروع قديم (سكربت واحد) إلى نظام الملفات. */
+    private fun migrateLegacyScript(p: Project) {
+        val legacy = p.scriptFile(this)
+        if (!legacy.isFile) return
+        val text = try { legacy.readText() } catch (e: Exception) { "" }
+        if (text.isNotBlank() && p.listUserFiles(this).isEmpty()) {
+            val name =
+                if (ScriptAnalyzer.classify(text).isWeb) "index.html" else "script.txt"
+            File(p.userFilesDir(this), name).writeText(text)
+        }
+        legacy.delete()
     }
 
     private fun githubToken(): String? =
@@ -90,71 +127,89 @@ class ProjectActivity : AppCompatActivity() {
     private fun githubUser(): String? =
         getSharedPreferences("app", Context.MODE_PRIVATE).getString("github_user", null)
 
-    private fun saveScript() {
+    // ===== إدارة الملفات =====
+
+    private fun refreshFiles() {
         val p = project ?: return
-        p.scriptFile(this).writeText(binding.inputScript.text?.toString().orEmpty())
+        binding.filesContainer.removeAllViews()
+        val files = p.listUserFiles(this)
+        binding.emptyFiles.visibility = if (files.isEmpty()) View.VISIBLE else View.GONE
+        val inflater = LayoutInflater.from(this)
+        for (f in files) {
+            val item = ItemFileBinding.inflate(inflater, binding.filesContainer, false)
+            item.fileName.text = f.name
+            item.fileSize.text = formatSize(f.length())
+            item.root.setOnClickListener {
+                startActivity(
+                    Intent(this, EditFileActivity::class.java)
+                        .putExtra("id", p.id)
+                        .putExtra("file", f.name)
+                )
+            }
+            item.root.setOnLongClickListener {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(f.name)
+                    .setMessage(R.string.delete_file_q)
+                    .setPositiveButton(R.string.delete) { _, _ ->
+                        f.delete()
+                        refreshFiles()
+                    }
+                    .setNegativeButton(R.string.cancel, null)
+                    .show()
+                true
+            }
+            binding.filesContainer.addView(item.root)
+        }
     }
 
-    private fun currentScript(): String = binding.inputScript.text?.toString().orEmpty()
+    private fun formatSize(bytes: Long): String = when {
+        bytes < 1024 -> "$bytes B"
+        bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+        else -> "${bytes / (1024 * 1024)} MB"
+    }
+
+    private fun showAddMenu() {
+        val p = project ?: return
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.files_title)
+            .setItems(
+                arrayOf(getString(R.string.add_create), getString(R.string.add_import))
+            ) { _, which ->
+                when (which) {
+                    0 -> startActivity(
+                        Intent(this, EditFileActivity::class.java).putExtra("id", p.id)
+                    )
+                    1 -> importFile.launch("*/*")
+                }
+            }
+            .show()
+    }
+
+    /** نص الملف الرئيسي للفحص: index.html أو أول ملف نصي. */
+    private fun entryText(): String? {
+        val p = project ?: return null
+        val files = p.listUserFiles(this)
+        val entry = files.firstOrNull { it.name.equals("index.html", true) }
+            ?: files.firstOrNull { it.extension.lowercase() in textExtensions }
+            ?: return null
+        return try { entry.readText() } catch (e: Exception) { null }
+    }
 
     private fun onCheck() {
-        hideKeyboard()
-        saveScript()
-        val script = currentScript()
-        if (script.isBlank()) {
-            Snackbar.make(binding.root, R.string.empty_script, Snackbar.LENGTH_SHORT).show()
+        val text = entryText()
+        if (text.isNullOrBlank()) {
+            Snackbar.make(binding.root, R.string.no_files, Snackbar.LENGTH_SHORT).show()
             return
         }
         binding.resultsTitle.text = "نتيجة الفحص"
-        binding.resultsText.text = ScriptAnalyzer.analyze(script)
+        binding.resultsText.text = ScriptAnalyzer.analyze(text)
         binding.btnCopy.visibility = View.VISIBLE
     }
 
-    private fun onBuild() {
-        hideKeyboard()
-        if (busy) return
-        saveScript()
-        val p = project ?: return
-        val script = currentScript()
-        if (script.isBlank()) {
-            Snackbar.make(binding.root, R.string.empty_script, Snackbar.LENGTH_SHORT).show()
-            return
-        }
-        busy = true
-        setButtons(false)
-        binding.btnCopy.visibility = View.GONE
-        binding.resultsTitle.text = "جارٍ البناء…"
-        binding.progress.visibility = View.GONE
-        binding.progress.isIndeterminate = false
-        binding.progress.max = ScriptBuilder.steps.size
-        binding.progress.progress = 0
-        binding.progress.visibility = View.VISIBLE
-
-        val log = StringBuilder()
-        fun step(i: Int) {
-            if (i >= ScriptBuilder.steps.size) {
-                val result = ScriptBuilder.build(this, p, script)
-                binding.progress.visibility = View.GONE
-                binding.resultsTitle.text = "نتيجة البناء"
-                binding.resultsText.text = log.toString() + "\n" + result.summary
-                binding.btnCopy.visibility = View.VISIBLE
-                busy = false
-                setButtons(true)
-                Snackbar.make(binding.root, R.string.build_done, Snackbar.LENGTH_SHORT).show()
-                return
-            }
-            log.append("▸ ${ScriptBuilder.steps[i]} … تم\n")
-            binding.resultsText.text = log.toString()
-            binding.progress.progress = i + 1
-            handler.postDelayed({ step(i + 1) }, 380)
-        }
-        step(0)
-    }
+    // ===== الرفع والبناء على GitHub =====
 
     private fun onUpload() {
-        hideKeyboard()
         if (busy) return
-        saveScript()
         val p = project ?: return
         val token = githubToken()
         if (token == null) {
@@ -168,8 +223,8 @@ class ProjectActivity : AppCompatActivity() {
         binding.progress.isIndeterminate = true
         binding.progress.visibility = View.VISIBLE
         binding.resultsTitle.text = getString(R.string.github_uploading)
+        binding.resultsText.text = "يُرفع كل ملفاتك مع ملف البناء التلقائي…"
         Thread {
-            if (currentScript().isNotBlank()) ScriptBuilder.build(this, p, currentScript())
             val result = GitHubClient.uploadProject(this, p, token)
             runOnUiThread {
                 binding.progress.visibility = View.GONE
@@ -185,14 +240,11 @@ class ProjectActivity : AppCompatActivity() {
                         p.githubRepo = ProjectStore.sanitizeRepoName(p.name)
                         ProjectStore.save(this, p)
                     }
-                    // ابدأ متابعة حالة البناء داخل التطبيق
                     startPolling()
                 }
             }
         }.start()
     }
-
-    // ===== متابعة حالة البناء على GitHub =====
 
     private fun startPolling() {
         stopPolling()
@@ -227,7 +279,6 @@ class ProjectActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 binding.buildStatus.visibility = View.VISIBLE
-                // زر التثبيت يظهر متى ما وُجد أي بناء ناجح
                 binding.btnInstall.visibility =
                     if (success != null) View.VISIBLE else View.GONE
                 when {
@@ -256,7 +307,7 @@ class ProjectActivity : AppCompatActivity() {
         }.start()
     }
 
-    // ===== تنزيل APK وتثبيته من داخل التطبيق =====
+    // ===== التنزيل والتثبيت =====
 
     private fun onInstall() {
         if (busy) return
@@ -340,9 +391,7 @@ class ProjectActivity : AppCompatActivity() {
 
     private fun setButtons(enabled: Boolean) {
         binding.btnCheck.isEnabled = enabled
-        binding.btnBuild.isEnabled = enabled
-        binding.btnClear.isEnabled = enabled
-        binding.btnSample.isEnabled = enabled
+        binding.btnAddFile.isEnabled = enabled
         binding.btnGithubUpload.isEnabled = enabled
         binding.btnInstall.isEnabled = enabled
     }
@@ -353,27 +402,5 @@ class ProjectActivity : AppCompatActivity() {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(ClipData.newPlainText("result", text))
         Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
-    }
-
-    private fun hideKeyboard() {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        currentFocus?.let { imm.hideSoftInputFromWindow(it.windowToken, 0) }
-    }
-
-    companion object {
-        private val SAMPLE = """
-            <!DOCTYPE html>
-            <html lang="ar" dir="rtl">
-            <head>
-              <meta charset="utf-8">
-              <title>تطبيقي</title>
-              <style> body { font-family: sans-serif; text-align: center; } </style>
-            </head>
-            <body>
-              <h1>مرحباً!</h1>
-              <button onclick="alert('أهلاً بك')">اضغط هنا</button>
-            </body>
-            </html>
-        """.trimIndent()
     }
 }
