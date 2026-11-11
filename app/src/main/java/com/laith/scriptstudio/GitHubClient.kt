@@ -165,6 +165,49 @@ object GitHubClient {
         }
     }
 
+    data class RunProgress(val done: Int, val total: Int, val currentStep: String)
+
+    private val stepNamesAr = mapOf(
+        "Set up job" to "بدء المهمة",
+        "Checkout" to "تحميل ملفات المشروع",
+        "Set up Java 17" to "تجهيز جافا",
+        "Set up Android SDK" to "تجهيز أدوات أندرويد",
+        "Set up Gradle" to "تجهيز Gradle",
+        "Build debug APK" to "بناء ملف APK",
+        "Upload APK" to "رفع ملف APK",
+        "Complete job" to "إنهاء المهمة"
+    )
+
+    /** تقدّم البناء: عدد الخطوات المكتملة من الإجمالي واسم الخطوة الحالية. */
+    fun runProgress(token: String, owner: String, repo: String, runId: Long): RunProgress? {
+        return try {
+            val r = request("GET", "$API/repos/$owner/$repo/actions/runs/$runId/jobs", token)
+            if (r.code != 200) return null
+            val jobs = JSONObject(r.body).optJSONArray("jobs") ?: return null
+            var done = 0
+            var total = 0
+            var current = ""
+            for (j in 0 until jobs.length()) {
+                val steps = jobs.getJSONObject(j).optJSONArray("steps") ?: continue
+                for (i in 0 until steps.length()) {
+                    val st = steps.getJSONObject(i)
+                    val name = st.optString("name")
+                    if (name.startsWith("Post ")) continue
+                    total++
+                    when (st.optString("status")) {
+                        "completed" -> done++
+                        "in_progress" -> if (current.isEmpty()) {
+                            current = stepNamesAr[name] ?: name
+                        }
+                    }
+                }
+            }
+            if (total == 0) null else RunProgress(done, total, current)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /** رابط تنزيل أول ملف ناتج من تشغيل ناجح. */
     fun latestArtifactUrl(token: String, owner: String, repo: String, runId: Long): String? {
         return try {

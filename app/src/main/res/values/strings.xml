@@ -91,4 +91,8 @@
     <string name="workflow_scope_hint">
 
 تنبيه: فشل رفع ملف البناء التلقائي. سجّل الخروج ثم سجّل الدخول برمز جديد يحمل صلاحية workflow.</string>
+
+    <string name="splash_name">Laith</string>
+    <string name="splash_done">تم</string>
+    <string name="splash_tagline">ابنِ تطبيقك من جوالك</string>
 </resources>

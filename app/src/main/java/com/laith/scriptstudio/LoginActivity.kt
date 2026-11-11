@@ -46,6 +46,7 @@ class LoginActivity : AppCompatActivity() {
                             .putString("github_user", user)
                             .apply()
                         Toast.makeText(this, "أهلاً $user — تم الربط بنجاح", Toast.LENGTH_LONG).show()
+                        if (isTaskRoot) startActivity(Intent(this, MainActivity::class.java))
                         finish()
                     }
                 }

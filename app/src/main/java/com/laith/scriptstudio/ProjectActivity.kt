@@ -251,6 +251,7 @@ class ProjectActivity : AppCompatActivity() {
         pollTries = 0
         binding.buildStatus.visibility = View.VISIBLE
         binding.buildStatus.text = getString(R.string.build_status_running)
+        showBuildProgress(null, null)
         val r = object : Runnable {
             override fun run() {
                 pollTries++
@@ -266,6 +267,20 @@ class ProjectActivity : AppCompatActivity() {
         pollRunnable = null
     }
 
+    /** سطر تقدّم البناء: محدد بالخطوات أو غير محدد أثناء الانتظار. */
+    private fun showBuildProgress(done: Int?, total: Int?) {
+        val bar = binding.buildProgress
+        bar.visibility = View.GONE
+        if (done == null || total == null || total <= 0) {
+            bar.isIndeterminate = true
+        } else {
+            bar.isIndeterminate = false
+            bar.max = total
+            bar.setProgressCompat(done, true)
+        }
+        bar.visibility = View.VISIBLE
+    }
+
     private fun checkBuildOnce() = checkBuild(repeatWhileRunning = false)
 
     private fun checkBuild(repeatWhileRunning: Boolean) {
@@ -276,6 +291,8 @@ class ProjectActivity : AppCompatActivity() {
         Thread {
             val run = GitHubClient.latestRun(token, user, repo)
             val success = GitHubClient.latestSuccessfulRun(token, user, repo)
+            val progress = if (run != null && run.status != "completed")
+                GitHubClient.runProgress(token, user, repo, run.id) else null
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 binding.buildStatus.visibility = View.VISIBLE
@@ -284,22 +301,37 @@ class ProjectActivity : AppCompatActivity() {
                 when {
                     run == null -> {
                         binding.buildStatus.text = getString(R.string.build_status_none)
+                        binding.buildProgress.visibility = View.GONE
                         if (repeatWhileRunning && pollTries < 40) {
                             pollRunnable?.let { handler.postDelayed(it, 12000) }
                         }
                     }
                     run.status != "completed" -> {
-                        binding.buildStatus.text = getString(R.string.build_status_running)
+                        if (progress != null) {
+                            val stepNo = minOf(progress.done + 1, progress.total)
+                            val stepName =
+                                if (progress.currentStep.isNotEmpty()) " — " + progress.currentStep
+                                else ""
+                            binding.buildStatus.text =
+                                "⏳ البناء قيد التشغيل: الخطوة " + stepNo + " من " +
+                                    progress.total + stepName
+                            showBuildProgress(progress.done, progress.total)
+                        } else {
+                            binding.buildStatus.text = getString(R.string.build_status_running)
+                            showBuildProgress(null, null)
+                        }
                         if (repeatWhileRunning && pollTries < 40) {
                             pollRunnable?.let { handler.postDelayed(it, 12000) }
                         }
                     }
                     run.conclusion == "success" -> {
                         binding.buildStatus.text = getString(R.string.build_status_success)
+                        showBuildProgress(1, 1)
                         stopPolling()
                     }
                     else -> {
                         binding.buildStatus.text = getString(R.string.build_status_failure)
+                        binding.buildProgress.visibility = View.GONE
                         stopPolling()
                     }
                 }

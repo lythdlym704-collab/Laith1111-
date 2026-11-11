@@ -182,6 +182,15 @@
                     android:textColor="@color/text_secondary" android:textSize="14sp"
                     android:visibility="gone" />
 
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/buildProgress"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    app:indicatorColor="@color/brand_build"
+                    app:trackThickness="8dp"
+                    app:trackCornerRadius="6dp" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnInstall"
                     style="@style/Widget.ScriptStudio.Button.Build"
