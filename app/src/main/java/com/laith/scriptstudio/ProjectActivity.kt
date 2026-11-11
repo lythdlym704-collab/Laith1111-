@@ -223,9 +223,13 @@ class ProjectActivity : AppCompatActivity() {
         val repo = p.githubRepo.ifBlank { return }
         Thread {
             val run = GitHubClient.latestRun(token, user, repo)
+            val success = GitHubClient.latestSuccessfulRun(token, user, repo)
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 binding.buildStatus.visibility = View.VISIBLE
+                // زر التثبيت يظهر متى ما وُجد أي بناء ناجح
+                binding.btnInstall.visibility =
+                    if (success != null) View.VISIBLE else View.GONE
                 when {
                     run == null -> {
                         binding.buildStatus.text = getString(R.string.build_status_none)
@@ -241,12 +245,10 @@ class ProjectActivity : AppCompatActivity() {
                     }
                     run.conclusion == "success" -> {
                         binding.buildStatus.text = getString(R.string.build_status_success)
-                        binding.btnInstall.visibility = View.VISIBLE
                         stopPolling()
                     }
                     else -> {
                         binding.buildStatus.text = getString(R.string.build_status_failure)
-                        binding.btnInstall.visibility = View.GONE
                         stopPolling()
                     }
                 }
@@ -277,8 +279,8 @@ class ProjectActivity : AppCompatActivity() {
         binding.buildStatus.text = getString(R.string.downloading_apk)
         Thread {
             var apk: File? = null
-            val run = GitHubClient.latestRun(token, user, repo)
-            if (run != null && run.conclusion == "success") {
+            val run = GitHubClient.latestSuccessfulRun(token, user, repo)
+            if (run != null) {
                 val url = GitHubClient.latestArtifactUrl(token, user, repo, run.id)
                 if (url != null) {
                     val zip = File(cacheDir, "apk/artifact.zip")

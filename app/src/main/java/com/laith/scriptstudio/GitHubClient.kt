@@ -143,6 +143,28 @@ object GitHubClient {
         }
     }
 
+    /** أحدث تشغيل ناجح (حتى لو كانت تشغيلات أحدث ما تزال تعمل). */
+    fun latestSuccessfulRun(token: String, owner: String, repo: String): RunInfo? {
+        return try {
+            val r = request(
+                "GET",
+                "$API/repos/$owner/$repo/actions/runs?status=success&per_page=1",
+                token
+            )
+            if (r.code != 200) return null
+            val runs = JSONObject(r.body).optJSONArray("workflow_runs") ?: return null
+            if (runs.length() == 0) return null
+            val o = runs.getJSONObject(0)
+            RunInfo(
+                id = o.optLong("id"),
+                status = o.optString("status"),
+                conclusion = o.optString("conclusion")
+            )
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /** رابط تنزيل أول ملف ناتج من تشغيل ناجح. */
     fun latestArtifactUrl(token: String, owner: String, repo: String, runId: Long): String? {
         return try {
@@ -254,10 +276,25 @@ object GitHubClient {
         )
         add(".github/workflows/build.yml", AppTemplate.workflowYml())
 
+        // كل الملفات تُرفع بوسم [skip ci] حتى لا يبدأ بناء لكل ملف،
+        // ثم دفعة أخيرة واحدة تُطلق بناءً واحداً فقط.
         val failed = mutableListOf<String>()
         for ((path, bytes) in files) {
-            if (!putFile(token, user, repo, path, bytes, "تحديث من ستوديو السكربت")) {
+            if (!putFile(token, user, repo, path, bytes, "تحديث من ستوديو السكربت [skip ci]")) {
                 failed.add(path)
+            }
+        }
+        if (failed.isEmpty()) {
+            val stamp = java.text.SimpleDateFormat(
+                "yyyy-MM-dd HH:mm:ss", java.util.Locale.US
+            ).format(java.util.Date())
+            if (!putFile(
+                    token, user, repo, "build-trigger.txt",
+                    stamp.toByteArray(Charsets.UTF_8),
+                    "بدء بناء واحد من ستوديو السكربت"
+                )
+            ) {
+                failed.add("build-trigger.txt")
             }
         }
 

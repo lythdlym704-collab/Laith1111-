@@ -248,6 +248,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
