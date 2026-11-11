@@ -120,7 +120,7 @@ object ScriptAnalyzer {
             Regex("""\b(def |import |print\()""").containsMatchIn(script) -> "Python"
             Regex("""\b(echo |fi\b|then\b|\$\{)""").containsMatchIn(script) -> "Bash / Shell"
             Regex("""\b(function |const |let |=>)""").containsMatchIn(script) -> "JavaScript"
-            Regex("""(Write-Host|Get-|\$PSVersion)""").containsMatchIn(script) -> "PowerShell"
+            Regex("""(Write-Host|Get-\w+|\.ps1)""").containsMatchIn(script) -> "PowerShell"
             Regex("""@echo off|\bgoto\b|%\w+%""", RegexOption.IGNORE_CASE).containsMatchIn(script) -> "Batch (CMD)"
             else -> "غير محدّد"
         }
