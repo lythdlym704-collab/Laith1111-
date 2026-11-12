@@ -354,8 +354,9 @@ jobs:
           SETTINGS=@D@(find . -path ./node_modules -prune -o \( -name settings.gradle -o -name settings.gradle.kts \) -print | grep -v '/build/' | head -n 1)
           if [ -n "@D@SETTINGS" ]; then cd "@D@(dirname "@D@SETTINGS")"; fi
           rm -f local.properties
+          if [ -f gradle.properties ]; then sed -i '/org.gradle.java.home/d' gradle.properties; fi
           echo "Building in: @D@(pwd)"
-          AGP=@D@(grep -rhoE "com\\.android\\.tools\\.build:gradle:[0-9]+\\.[0-9]+|com\\.android\\.application['\"]?[[:space:]]*(version|=)?[[:space:]]*['\"]?[0-9]+\\.[0-9]+|agp[[:space:]]*=[[:space:]]*['\"][0-9]+\\.[0-9]+" --include=*.gradle --include=*.gradle.kts --include=*.toml . 2>/dev/null | grep -oE "[0-9]+\\.[0-9]+" | head -n 1)
+          AGP=@D@(grep -rhoiE "com\\.android\\.tools\\.build:gradle:[0-9]+\\.[0-9]+|com\\.android\\.application[^0-9\\n]{0,20}[0-9]+\\.[0-9]+|agp[^0-9\\n]{0,10}[0-9]+\\.[0-9]+|android[-_]?gradle[-_]?plugin[^0-9\\n]{0,10}[0-9]+\\.[0-9]+" --include=*.gradle --include=*.gradle.kts --include=*.toml . 2>/dev/null | grep -oE "[0-9]+\\.[0-9]+" | head -n 1)
           echo "AGP version: @D@{AGP:-unknown}"
           MAJOR=@D@(echo "@D@AGP" | cut -d. -f1)
           MINOR=@D@(echo "@D@AGP" | cut -d. -f2)
@@ -371,6 +372,7 @@ jobs:
               elif [ "@D@MINOR" -ge 4 ]; then GV=8.6
               elif [ "@D@MINOR" -ge 3 ]; then GV=8.4
               else GV=8.2; fi ;;
+            9) export JAVA_HOME="@D@JAVA_HOME_17_X64"; GV=9.1.0 ;;
             7) export JAVA_HOME="@D@JAVA_HOME_11_X64"; GV=7.6.4 ;;
             4) export JAVA_HOME="@D@JAVA_HOME_11_X64"; GV=6.9.4 ;;
             3) export JAVA_HOME="@D@JAVA_HOME_8_X64"; GV=5.6.4 ;;
@@ -380,12 +382,18 @@ jobs:
           java -version
           if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
             chmod +x gradlew
-          elif [ -f gradle/wrapper/gradle-wrapper.properties ]; then
-            URL=@D@(grep distributionUrl gradle/wrapper/gradle-wrapper.properties | cut -d= -f2- | sed 's/\\//g')
-            gradle wrapper --gradle-distribution-url "@D@URL"
-            chmod +x gradlew
           else
-            gradle wrapper --gradle-version "@D@GV"
+            TMPW=@D@(mktemp -d)
+            if [ -f gradle/wrapper/gradle-wrapper.properties ]; then
+              URL=@D@(grep distributionUrl gradle/wrapper/gradle-wrapper.properties | cut -d= -f2- | sed 's/\\//g')
+              (cd "@D@TMPW" && gradle wrapper --gradle-distribution-url "@D@URL" --quiet)
+            else
+              (cd "@D@TMPW" && gradle wrapper --gradle-version "@D@GV" --quiet)
+            fi
+            mkdir -p gradle/wrapper
+            cp "@D@TMPW/gradlew" ./gradlew
+            cp "@D@TMPW/gradle/wrapper/gradle-wrapper.jar" gradle/wrapper/gradle-wrapper.jar
+            cp "@D@TMPW/gradle/wrapper/gradle-wrapper.properties" gradle/wrapper/gradle-wrapper.properties
             chmod +x gradlew
           fi
           ./gradlew --no-daemon --stacktrace assembleDebug
@@ -526,5 +534,138 @@ jobs:
         ProjectKind.FLUTTER -> workflowFlutterYml()
         ProjectKind.REACT_NATIVE -> workflowReactNativeYml()
         else -> workflowAndroidYml()
+    }
+
+    /** هل يحتوي ملف البناء على مشغّل push؟ */
+    fun hasPushTrigger(yaml: String): Boolean =
+        Regex("(?m)^\\s*push\\s*:").containsMatchIn(yaml) ||
+            Regex("(?m)^\\s*on\\s*:\\s*\\[?[^\\n]*\\bpush\\b").containsMatchIn(yaml)
+
+    /** خطوة تُحقن في أي ملف بناء لتطبيق اسم التطبيق وصورته من .scriptstudio قبل البناء. */
+    fun brandingStep(indent: String): String {
+        val body = """
+- name: Apply app name and icon (ScriptStudio)
+  run: |
+    python3 - <<'PYEOF'
+    import json, os, re, shutil, glob
+    cfg = {}
+    try:
+        cfg = json.load(open('.scriptstudio/app.json', encoding='utf-8'))
+    except Exception:
+        pass
+    name = cfg.get('name', '')
+    icon = '.scriptstudio/icon.png' if os.path.isfile('.scriptstudio/icon.png') else None
+    if not name and not icon:
+        raise SystemExit(0)
+    def esc(v):
+        return v.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+    label_re = re.compile(r'\s+android:label\s*=\s*"[^"]*"')
+    icon_re = re.compile(r'\s+android:icon\s*=\s*"[^"]*"')
+    round_re = re.compile(r'\s+android:roundIcon\s*=\s*"[^"]*"')
+    count = 0
+    for path in glob.glob('**/AndroidManifest.xml', recursive=True):
+        if '/build/' in path or '/test/' in path or 'androidTest' in path or 'node_modules' in path:
+            continue
+        try:
+            xml = open(path, encoding='utf-8').read()
+        except Exception:
+            continue
+        if '<application' not in xml or 'android.intent.category.LAUNCHER' not in xml:
+            continue
+        def fix_app(m):
+            tag = m.group(0)
+            if name:
+                tag = label_re.sub('', tag)
+            if icon:
+                tag = icon_re.sub('', tag)
+                tag = round_re.sub('', tag)
+            ins = ''
+            if name:
+                ins += ' android:label="' + esc(name) + '"'
+            if icon:
+                ins += ' android:icon="@mipmap/scriptstudio_icon" android:roundIcon="@mipmap/scriptstudio_icon"'
+            return tag.replace('<application', '<application' + ins, 1)
+        xml = re.sub(r'<application(?=[\s>])[^>]*>', fix_app, xml, count=1)
+        def fix_act(m):
+            block = m.group(0)
+            if 'android.intent.category.LAUNCHER' not in block:
+                return block
+            om = re.match(r'<activity(?=[\s>])[^>]*>', block)
+            if not om:
+                return block
+            o = om.group(0)
+            n = o
+            if name:
+                n = label_re.sub('', n)
+            if icon:
+                n = icon_re.sub('', n)
+                n = round_re.sub('', n)
+            return block.replace(o, n, 1)
+        xml = re.sub(r'<activity(?=[\s>]).*?</activity>', fix_act, xml, flags=re.S)
+        open(path, 'w', encoding='utf-8').write(xml)
+        count += 1
+        if icon:
+            res = os.path.join(os.path.dirname(path), 'res')
+            for dens in ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi']:
+                dd = os.path.join(res, 'mipmap-' + dens)
+                os.makedirs(dd, exist_ok=True)
+                shutil.copy(icon, os.path.join(dd, 'scriptstudio_icon.png'))
+            dr = os.path.join(res, 'drawable')
+            os.makedirs(dr, exist_ok=True)
+            shutil.copy(icon, os.path.join(dr, 'scriptstudio_icon_fg.png'))
+            with open(os.path.join(dr, 'scriptstudio_icon_bg.xml'), 'w', encoding='utf-8') as f:
+                f.write('<?xml version="1.0" encoding="utf-8"?>\n<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#FFFFFF" /></shape>\n')
+            da = os.path.join(res, 'mipmap-anydpi-v26')
+            os.makedirs(da, exist_ok=True)
+            with open(os.path.join(da, 'scriptstudio_icon.xml'), 'w', encoding='utf-8') as f:
+                f.write('<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@drawable/scriptstudio_icon_bg" /><foreground android:drawable="@drawable/scriptstudio_icon_fg" /></adaptive-icon>\n')
+    print('ScriptStudio branding applied to', count, 'manifest(s)')
+    PYEOF
+""".trimIndent()
+        return body.lines().joinToString("\n") { if (it.isEmpty()) it else indent + it }
+    }
+
+    /**
+     * يحقن خطوة الاسم والصورة قبل خطوة البناء (gradle/flutter) في أي ملف workflow،
+     * سواء كان ملف المشروع الخاص أو ملفنا.
+     */
+    fun injectBranding(yaml: String): String {
+        if (yaml.contains("Apply app name and icon (ScriptStudio)")) return yaml
+        val lines = yaml.lines()
+        val stepRe = Regex("^(\\s*)- (name|uses|run)\\s*:")
+        val starts = lines.indices.filter { stepRe.containsMatchIn(lines[it]) }
+        if (starts.isEmpty()) return yaml
+        val buildRe = Regex("gradlew|\\bgradle\\s|assemble|flutter\\s+build|bundleRelease|cordova\\s+build|eas\\s+build")
+        var insertAt = -1
+        for ((k, idx) in starts.withIndex()) {
+            val end = if (k + 1 < starts.size) starts[k + 1] else lines.size
+            val block = lines.subList(idx, end).joinToString("\n")
+            if (buildRe.containsMatchIn(block)) {
+                insertAt = idx
+                break
+            }
+        }
+        if (insertAt < 0) insertAt = starts.last()
+        val indent = stepRe.find(lines[insertAt])!!.groupValues[1]
+        val step = brandingStep(indent).lines()
+        return (lines.take(insertAt) + step + lines.drop(insertAt)).joinToString("\n")
+    }
+
+    /** يختار ملف بناء المشروع الخاص إن وُجد وكان صالحاً، وإلا ملفنا. */
+    fun chooseWorkflow(kind: String, userWorkflows: List<Pair<String, String>>): Pair<String, String> {
+        val candidate = userWorkflows.firstOrNull { (_, text) ->
+            Regex("gradlew|\\bgradle\\s|assemble|flutter\\s+build|apk", RegexOption.IGNORE_CASE).containsMatchIn(text)
+        } ?: userWorkflows.firstOrNull()
+        if (candidate != null && hasPushTrigger(candidate.second)) {
+            // نسخة release غير الموقّعة لا تُثبَّت على الجوال؛ نحوّلها إلى debug قابلة للتثبيت
+            val text = candidate.second
+                .replace("assembleRelease", "assembleDebug")
+                .replace("bundleRelease", "assembleDebug")
+                .replace("apk/release", "apk/debug")
+                .replace("app-release-unsigned.apk", "app-debug.apk")
+                .replace("app-release.apk", "app-debug.apk")
+            return candidate.first to injectBranding(text)
+        }
+        return ".github/workflows/build-apk.yml" to injectBranding(workflowFor(kind))
     }
 }

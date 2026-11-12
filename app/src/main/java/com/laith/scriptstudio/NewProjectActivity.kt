@@ -27,12 +27,13 @@ class NewProjectActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
                 val file = File(cacheDir, "new_project_icon.png")
-                contentResolver.openInputStream(uri)?.use { input ->
-                    file.outputStream().use { input.copyTo(it) }
+                if (IconUtil.saveFromUri(this, uri, file)) {
+                    iconTemp = file
+                    binding.iconPreview.setPadding(0, 0, 0, 0)
+                    binding.iconPreview.setImageBitmap(BitmapFactory.decodeFile(file.absolutePath))
+                } else {
+                    Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
                 }
-                iconTemp = file
-                binding.iconPreview.setPadding(0, 0, 0, 0)
-                binding.iconPreview.setImageBitmap(BitmapFactory.decodeFile(file.absolutePath))
             }
         }
 

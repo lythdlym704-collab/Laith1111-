@@ -304,6 +304,71 @@ object GitHubClient {
         }
     }
 
+    data class FailureInfo(val step: String, val excerpt: String)
+
+    /** يجلب اسم الخطوة الفاشلة ومقتطف الأخطاء من سجل البناء. */
+    fun failureInfo(token: String, owner: String, repo: String, runId: Long, cacheDir: File): FailureInfo? {
+        return try {
+            val r = request("GET", "$API/repos/$owner/$repo/actions/runs/$runId/jobs", token)
+            if (r.code != 200) return null
+            val jobs = JSONObject(r.body).optJSONArray("jobs") ?: return null
+            var jobId = -1L
+            var stepName = ""
+            for (j in 0 until jobs.length()) {
+                val job = jobs.getJSONObject(j)
+                if (job.optString("conclusion") != "failure") continue
+                jobId = job.optLong("id")
+                val steps = job.optJSONArray("steps") ?: JSONArray()
+                for (i in 0 until steps.length()) {
+                    val st = steps.getJSONObject(i)
+                    if (st.optString("conclusion") == "failure") {
+                        val n = st.optString("name")
+                        stepName = stepNamesAr[n] ?: n
+                        break
+                    }
+                }
+                break
+            }
+            if (jobId < 0) return null
+            val logFile = File(cacheDir, "logs/job-$jobId.txt")
+            if (!downloadToFile(token, "$API/repos/$owner/$repo/actions/jobs/$jobId/logs", logFile)) {
+                return FailureInfo(stepName, "تعذّر تنزيل سجل الخطأ")
+            }
+            val lines = logFile.readLines().map { it.replaceFirst(Regex("^\\S+Z\\s?"), "") }
+            FailureInfo(stepName, extractErrors(lines))
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun extractErrors(lines: List<String>): String {
+        val out = LinkedHashSet<String>()
+        val keys = listOf(
+            "##[error]", "FAILURE:", "What went wrong", "error:", "Error:", "ERROR",
+            "e: ", "Exception", "Could not", "not found", "Unresolved", "failed",
+            "Execution failed", "Caused by", "BUILD FAILED", "No such file", "Permission denied"
+        )
+        // كتلة Gradle الأساسية
+        val start = lines.indexOfFirst { it.contains("FAILURE: Build failed") }
+        if (start >= 0) {
+            for (i in start until minOf(lines.size, start + 30)) {
+                val l = lines[i].trim()
+                if (l.startsWith("* Try:")) break
+                if (l.isNotEmpty()) out.add(l)
+            }
+        }
+        for (l in lines) {
+            val t = l.trim()
+            if (t.isEmpty() || t.startsWith("at ") || t.startsWith("...")) continue
+            if (keys.any { t.contains(it) }) out.add(t.removePrefix("##[error]").trim())
+            if (out.size >= 45) break
+        }
+        if (out.isEmpty()) {
+            return lines.takeLast(25).joinToString("\n").trim().ifEmpty { "لم يُعثر على تفاصيل" }
+        }
+        return out.joinToString("\n").take(5000)
+    }
+
     fun latestArtifactUrl(token: String, owner: String, repo: String, runId: Long): String? {
         return try {
             val r = request("GET", "$API/repos/$owner/$repo/actions/runs/$runId/artifacts", token)
@@ -396,18 +461,26 @@ object GitHubClient {
 
         var brandedManifests = 0
         if (ProjectKind.isNative(kind)) {
-            for ((f, r) in userFiles.zip(rel)) files.add(r to f.readBytes())
-            // تطبيق اسم التطبيق وصورته على المشروع نفسه
-            val iconBytes = project.iconFile(context).takeIf { it.isFile }?.readBytes()
-            brandedManifests = Branding.apply(files, project.appName.ifBlank { project.name }, iconBytes)
-            val hasOwnWorkflow = rel.any {
-                it.startsWith(".github/workflows/") && (it.endsWith(".yml") || it.endsWith(".yaml"))
+            // ملفات workflow الخاصة بالمشروع تُقرأ من ملفاته (ZIP أو عادية) ويُختار الأنسب
+            val userWorkflows = mutableListOf<Pair<String, String>>()
+            for ((f, r) in userFiles.zip(rel)) {
+                if (r.startsWith(".github/workflows/") && (r.endsWith(".yml") || r.endsWith(".yaml"))) {
+                    runCatching { f.readText() }.getOrNull()?.let { userWorkflows.add(r to it) }
+                    continue
+                }
+                files.add(r to f.readBytes())
             }
-            if (hasOwnWorkflow) {
-                deletions.add(".github/workflows/build-apk.yml")
-            } else {
-                add(".github/workflows/build-apk.yml", AppTemplate.workflowFor(kind))
-            }
+            // تطبيق اسم التطبيق وصورته على المشروع نفسه (يستبدل الموجود في الكود)
+            val appName = project.appName.ifBlank { project.name }
+            val iconFile = project.iconFile(context)
+            val iconBytes = if (iconFile.isFile) (IconUtil.pngBytes(iconFile) ?: iconFile.readBytes()) else null
+            brandedManifests = Branding.apply(files, appName, iconBytes)
+            // ملفات تُستخدمها خطوة الاسم والصورة داخل البناء أيضاً
+            add(".scriptstudio/app.json", JSONObject().put("name", appName).toString(2))
+            if (iconBytes != null) files.add(".scriptstudio/icon.png" to iconBytes)
+            val (wfPath, wfText) = AppTemplate.chooseWorkflow(kind, userWorkflows)
+            add(wfPath, wfText)
+            syncPrefixes.add(".github/workflows/")
             val nowPaths = files.map { it.first }.toSet()
             deletions.addAll(AppTemplate.templatePaths.filter { it !in nowPaths })
         } else {
@@ -444,8 +517,10 @@ object GitHubClient {
             add("app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml", AppTemplate.launcherXml())
             add("app/src/main/res/drawable/launcher_bg.xml", AppTemplate.iconBgXml())
             if (hasIcon) {
+                val iconFile = project.iconFile(context)
                 files.add(
-                    "app/src/main/res/drawable/launcher_fg.png" to project.iconFile(context).readBytes()
+                    "app/src/main/res/drawable/launcher_fg.png" to
+                        (IconUtil.pngBytes(iconFile) ?: iconFile.readBytes())
                 )
                 deletions.add("app/src/main/res/drawable/launcher_fg.xml")
             } else {
@@ -482,7 +557,11 @@ object GitHubClient {
         val url = "https://github.com/" + user + "/" + repo
         val kindLabel = ProjectKind.label(kind)
         return if (ok) {
-            val brandNote = if (ProjectKind.isNative(kind)) {
+            val wfNote = if (ProjectKind.isNative(kind)) {
+                val own = files.any { it.first.startsWith(".github/workflows/") && it.first != ".github/workflows/build-apk.yml" }
+                if (own) "\nملف البناء: ملف المشروع الخاص (مع خطوة الاسم والصورة)" else "\nملف البناء: build-apk.yml"
+            } else ""
+            val brandNote = wfNote + if (ProjectKind.isNative(kind)) {
                 if (brandedManifests > 0) "\nتم تطبيق اسم التطبيق وصورته على المشروع"
                 else "\nتنبيه: لم يُعثر على AndroidManifest بنشاط إطلاق لتطبيق الاسم والصورة"
             } else ""

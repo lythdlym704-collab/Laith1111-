@@ -256,8 +256,7 @@ class ProjectActivity : AppCompatActivity() {
                 setButtons(true)
                 binding.progress.visibility = View.GONE
                 binding.progress.isIndeterminate = false
-                binding.resultsTitle.text = "نتيجة الاستيراد"
-                binding.resultsText.text = msg
+                showResult("نتيجة الاستيراد", msg, msg.startsWith(getString(R.string.import_failed)))
                 refreshFiles()
             }
         }.start()
@@ -290,7 +289,7 @@ class ProjectActivity : AppCompatActivity() {
                 (if (p.iconFile(this).isFile) " مع صورتك" else " (بدون صورة مختارة)"))
             val hasWf = rel.any { it.startsWith(".github/workflows/") }
             sb.appendLine(
-                if (hasWf) "ملف البناء: ملف المشروع الخاص سيُستخدم"
+                if (hasWf) "ملف البناء: سيُقرأ ملف البناء الخاص بالمشروع مع حقن خطوة الاسم والصورة"
                 else "ملف البناء: سيُضاف build-apk.yml تلقائياً"
             )
             val hasWrapper = rel.any { it == "gradlew" } && rel.any { it.endsWith("gradle-wrapper.jar") }
@@ -299,9 +298,7 @@ class ProjectActivity : AppCompatActivity() {
         sb.appendLine()
         val text = entryText(files)
         if (text != null) sb.append(ScriptAnalyzer.analyze(text))
-        binding.resultsTitle.text = "نتيجة الفحص"
-        binding.resultsText.text = sb.toString().trimEnd()
-        binding.btnCopy.visibility = View.VISIBLE
+        showResult("نتيجة الفحص", sb.toString().trimEnd())
     }
 
     // ===== الرفع والبناء =====
@@ -324,8 +321,7 @@ class ProjectActivity : AppCompatActivity() {
         binding.progress.visibility = View.GONE
         binding.progress.isIndeterminate = true
         binding.progress.visibility = View.VISIBLE
-        binding.resultsTitle.text = getString(R.string.github_uploading)
-        binding.resultsText.text = "تجهيز الملفات…"
+        showResult(getString(R.string.github_uploading), "تجهيز الملفات…")
         Thread {
             val result = GitHubClient.uploadProject(this, p, token) { done, total ->
                 runOnUiThread {
@@ -335,9 +331,7 @@ class ProjectActivity : AppCompatActivity() {
             runOnUiThread {
                 binding.progress.visibility = View.GONE
                 binding.progress.isIndeterminate = false
-                binding.resultsTitle.text = "نتيجة الرفع"
-                binding.resultsText.text = (if (result.ok) "✅ " else "⚠️ ") + result.message
-                binding.btnCopy.visibility = View.VISIBLE
+                showResult("نتيجة الرفع", (if (result.ok) "✅ " else "⚠️ ") + result.message, !result.ok)
                 busy = false
                 setButtons(true)
                 if (result.ok) {
@@ -441,6 +435,7 @@ class ProjectActivity : AppCompatActivity() {
                         binding.buildProgress.visibility = View.GONE
                         binding.buildPercent.text = "❌"
                         stopPolling()
+                        showFailure(run.id)
                     }
                 }
             }
@@ -526,6 +521,37 @@ class ProjectActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, R.string.install_failed, Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun showResult(title: String, text: String, error: Boolean = false) {
+        binding.resultsTitle.text = title
+        binding.resultsText.text = text
+        binding.resultsText.setTextColor(
+            if (error) 0xFFFF6B6B.toInt() else getColor(R.color.code_text)
+        )
+        binding.btnCopy.visibility = View.VISIBLE
+    }
+
+    /** يجلب سبب الفشل ويعرضه بالأحمر. */
+    private fun showFailure(runId: Long) {
+        val p = project ?: return
+        val token = githubToken() ?: return
+        val user = githubUser() ?: return
+        val repo = p.githubRepo.ifBlank { return }
+        Thread {
+            val info = GitHubClient.failureInfo(token, user, repo, runId, cacheDir)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                if (info == null) {
+                    showResult("❌ فشل البناء", "تعذّر جلب تفاصيل الخطأ. اضغط سهم التحديث للمحاولة مجدداً.", true)
+                    return@runOnUiThread
+                }
+                if (info.step.isNotEmpty()) {
+                    binding.buildStatus.text = "❌ فشل البناء في الخطوة: " + info.step
+                }
+                showResult("❌ سبب فشل البناء", info.excerpt, true)
+            }
+        }.start()
     }
 
     private fun setButtons(enabled: Boolean) {

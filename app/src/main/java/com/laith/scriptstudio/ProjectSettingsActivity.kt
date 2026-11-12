@@ -18,10 +18,11 @@ class ProjectSettingsActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             val p = project ?: return@registerForActivityResult
             if (uri != null) {
-                contentResolver.openInputStream(uri)?.use { input ->
-                    p.iconFile(this).outputStream().use { input.copyTo(it) }
+                if (IconUtil.saveFromUri(this, uri, p.iconFile(this))) {
+                    showIcon()
+                } else {
+                    Toast.makeText(this, R.string.import_failed, Toast.LENGTH_SHORT).show()
                 }
-                showIcon()
             }
         }
 

@@ -101,7 +101,7 @@ object Branding {
             if (!m.value.contains("android.intent.category.LAUNCHER")) return@replace m.value
             val open = Regex("<activity(?=[\\s>])[^>]*>").find(m.value)?.value
                 ?: return@replace m.value
-            val newOpen = open.replace(labelAttr, "")
+            val newOpen = open.replace(labelAttr, "").replace(iconAttr, "").replace(roundIconAttr, "")
             m.value.replaceFirst(open, newOpen)
         }
         return out
