@@ -300,8 +300,8 @@ jobs:
     )
 
     /**
-     * ملف بناء لمشروع أندرويد أصلي رفعه المستخدم كما هو:
-     * يجد مجلد المشروع، يستخدم gradlew إن وُجد، ويجمع أي APK ناتج.
+     * ملف بناء لمشروع أندرويد أصلي رفعه المستخدم كما هو: يختار JDK وGradle
+     * المناسبين لإصدار AGP تلقائياً، يقبل التراخيص، ويجمع أي APK ناتج.
      */
     fun workflowAndroidYml(): String = """
 name: Build APK
@@ -316,7 +316,107 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 8
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+      - name: Set up Java 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-35 platforms;android-34 build-tools;35.0.0 build-tools;34.0.0"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Build debug APK
+        run: |
+          set -e
+          rm -f local.properties
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+          echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          SETTINGS=@D@(find . -path ./node_modules -prune -o \( -name settings.gradle -o -name settings.gradle.kts \) -print | grep -v '/build/' | head -n 1)
+          if [ -n "@D@SETTINGS" ]; then cd "@D@(dirname "@D@SETTINGS")"; fi
+          rm -f local.properties
+          echo "Building in: @D@(pwd)"
+          AGP=@D@(grep -rhoE "com\\.android\\.tools\\.build:gradle:[0-9]+\\.[0-9]+|com\\.android\\.application['\"]?[[:space:]]*(version|=)?[[:space:]]*['\"]?[0-9]+\\.[0-9]+|agp[[:space:]]*=[[:space:]]*['\"][0-9]+\\.[0-9]+" --include=*.gradle --include=*.gradle.kts --include=*.toml . 2>/dev/null | grep -oE "[0-9]+\\.[0-9]+" | head -n 1)
+          echo "AGP version: @D@{AGP:-unknown}"
+          MAJOR=@D@(echo "@D@AGP" | cut -d. -f1)
+          MINOR=@D@(echo "@D@AGP" | cut -d. -f2)
+          MAJOR=@D@{MAJOR:-8}
+          MINOR=@D@{MINOR:-5}
+          case "@D@MAJOR" in
+            8)
+              export JAVA_HOME="@D@JAVA_HOME_17_X64"
+              if [ "@D@MINOR" -ge 11 ]; then GV=8.13
+              elif [ "@D@MINOR" -ge 9 ]; then GV=8.11.1
+              elif [ "@D@MINOR" -ge 7 ]; then GV=8.9
+              elif [ "@D@MINOR" -ge 5 ]; then GV=8.7
+              elif [ "@D@MINOR" -ge 4 ]; then GV=8.6
+              elif [ "@D@MINOR" -ge 3 ]; then GV=8.4
+              else GV=8.2; fi ;;
+            7) export JAVA_HOME="@D@JAVA_HOME_11_X64"; GV=7.6.4 ;;
+            4) export JAVA_HOME="@D@JAVA_HOME_11_X64"; GV=6.9.4 ;;
+            3) export JAVA_HOME="@D@JAVA_HOME_8_X64"; GV=5.6.4 ;;
+            *) export JAVA_HOME="@D@JAVA_HOME_17_X64"; GV=8.7 ;;
+          esac
+          export PATH="@D@JAVA_HOME/bin:@D@PATH"
+          java -version
+          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            chmod +x gradlew
+          elif [ -f gradle/wrapper/gradle-wrapper.properties ]; then
+            URL=@D@(grep distributionUrl gradle/wrapper/gradle-wrapper.properties | cut -d= -f2- | sed 's/\\//g')
+            gradle wrapper --gradle-distribution-url "@D@URL"
+            chmod +x gradlew
+          else
+            gradle wrapper --gradle-version "@D@GV"
+            chmod +x gradlew
+          fi
+          ./gradlew --no-daemon --stacktrace assembleDebug
+      - name: Collect APK files
+        run: |
+          mkdir -p apk-out
+          find . -type f -name "*.apk" -path "*/outputs/*" -not -path "*/intermediates/*" -exec cp {} apk-out/ \;
+          ls -la apk-out
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-apk
+          path: apk-out/*.apk
+          if-no-files-found: error
+""".trimIndent().replace("@D@", "\\$") + "\\n"
+
+    /** ملف بناء لمشروع Flutter. */
+    fun workflowFlutterYml(): String = """
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -328,28 +428,30 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: "platform-tools platforms;android-35 platforms;android-34 platforms;android-33 build-tools;35.0.0 build-tools;34.0.0 build-tools;33.0.2"
+          packages: "platform-tools platforms;android-35 platforms;android-34 build-tools;35.0.0 build-tools;34.0.0"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
       - name: Build debug APK
         run: |
-          SETTINGS=@D@(find . -path ./node_modules -prune -o \( -name settings.gradle -o -name settings.gradle.kts \) -print | grep -v '/build/' | head -n 1)
-          if [ -n "@D@SETTINGS" ]; then cd "@D@(dirname "@D@SETTINGS")"; fi
-          echo "Building in: @D@(pwd)"
-          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
-            chmod +x gradlew && ./gradlew --no-daemon --stacktrace assembleDebug
-          elif [ -f gradle/wrapper/gradle-wrapper.properties ]; then
-            URL=@D@(grep distributionUrl gradle/wrapper/gradle-wrapper.properties | cut -d= -f2- | sed 's/\\//g')
-            gradle wrapper --gradle-distribution-url "@D@URL" && chmod +x gradlew && ./gradlew --no-daemon --stacktrace assembleDebug
-          else
-            gradle --no-daemon --stacktrace assembleDebug
-          fi
+          set -e
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          PUB=@D@(find . -name pubspec.yaml -not -path "*/build/*" | head -n 1)
+          cd "@D@(dirname "@D@PUB")"
+          rm -f android/local.properties
+          flutter --version
+          flutter pub get
+          flutter build apk --debug
       - name: Collect APK files
         run: |
           mkdir -p apk-out
-          find . -path "*/build/outputs/apk/*" -name "*.apk" -exec cp {} apk-out/ \;
+          find . -type f -name "*.apk" -path "*/outputs/*" -not -path "*/intermediates/*" -exec cp {} apk-out/ \;
           ls -la apk-out
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -357,5 +459,72 @@ jobs:
           name: app-apk
           path: apk-out/*.apk
           if-no-files-found: error
-""".trimIndent().replace("@D@", "\$") + "\n"
+""".trimIndent().replace("@D@", "\\$") + "\\n"
+
+    /** ملف بناء لمشروع React Native. */
+    fun workflowReactNativeYml(): String = """
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-35 platforms;android-34 build-tools;35.0.0 build-tools;34.0.0"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build debug APK
+        run: |
+          set -e
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+          PKG=@D@(find . -name package.json -not -path "*/node_modules/*" | head -n 1)
+          cd "@D@(dirname "@D@PKG")"
+          npm ci || npm install
+          rm -f android/local.properties
+          cd android
+          chmod +x gradlew || true
+          if [ -f gradlew ]; then ./gradlew --no-daemon --stacktrace assembleDebug; else gradle --no-daemon --stacktrace assembleDebug; fi
+      - name: Collect APK files
+        run: |
+          mkdir -p apk-out
+          find . -type f -name "*.apk" -path "*/outputs/*" -not -path "*/intermediates/*" -exec cp {} apk-out/ \;
+          ls -la apk-out
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-apk
+          path: apk-out/*.apk
+          if-no-files-found: error
+""".trimIndent().replace("@D@", "\\$") + "\\n"
+
+    fun workflowFor(kind: String): String = when (kind) {
+        ProjectKind.FLUTTER -> workflowFlutterYml()
+        ProjectKind.REACT_NATIVE -> workflowReactNativeYml()
+        else -> workflowAndroidYml()
+    }
 }

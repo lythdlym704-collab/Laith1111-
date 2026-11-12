@@ -55,6 +55,10 @@ class ProjectActivity : AppCompatActivity() {
         binding.btnCopy.setOnClickListener { copyResult() }
         binding.btnGithubUpload.setOnClickListener { onUpload() }
         binding.btnInstall.setOnClickListener { onInstall() }
+        binding.btnRefreshBuild.setOnClickListener {
+            binding.btnRefreshBuild.animate().rotationBy(360f).setDuration(600).start()
+            checkBuildOnce()
+        }
     }
 
     override fun onResume() {
@@ -78,7 +82,10 @@ class ProjectActivity : AppCompatActivity() {
             else -> "المستودع: $user/${p.githubRepo}"
         }
         refreshFiles()
-        if (user != null && p.githubRepo.isNotBlank()) checkBuildOnce()
+        if (user != null && p.githubRepo.isNotBlank()) {
+            binding.buildRow.visibility = View.VISIBLE
+            checkBuildOnce()
+        }
     }
 
     override fun onPause() {
@@ -148,6 +155,12 @@ class ProjectActivity : AppCompatActivity() {
             binding.filesContainer.addView(more)
         }
     }
+
+    private fun detectKind(files: List<File>, rel: List<String>): String =
+        ProjectKind.detect(rel) { path ->
+            val idx = rel.indexOf(path)
+            if (idx < 0) null else runCatching { files[idx].readText() }.getOrNull()
+        }
 
     private fun formatSize(bytes: Long): String = when {
         bytes < 1024 -> "$bytes B"
@@ -232,8 +245,9 @@ class ProjectActivity : AppCompatActivity() {
                     }
                     msg = "✅ تم استيراد $name"
                 }
-                val rel = p.listUserFiles(this).map { p.relativePath(this, it) }
-                msg += "\nنوع المشروع: " + ProjectKind.label(ProjectKind.detect(rel))
+                val all = p.listUserFiles(this)
+                val rel = all.map { p.relativePath(this, it) }
+                msg += "\nنوع المشروع: " + ProjectKind.label(detectKind(all, rel))
             } catch (e: Exception) {
                 msg = getString(R.string.import_failed) + ": " + (e.message ?: "")
             }
@@ -266,12 +280,14 @@ class ProjectActivity : AppCompatActivity() {
             return
         }
         val rel = files.map { p.relativePath(this, it) }
-        val kind = ProjectKind.detect(rel)
+        val kind = detectKind(files, rel)
         val sb = StringBuilder()
         sb.appendLine("══ نوع المشروع ══")
         sb.appendLine(ProjectKind.label(kind))
         sb.appendLine("عدد الملفات: " + files.size)
-        if (kind == ProjectKind.ANDROID) {
+        if (ProjectKind.isNative(kind)) {
+            sb.appendLine("الاسم والصورة: سيُطبَّق «" + p.appName.ifBlank { p.name } + "»" +
+                (if (p.iconFile(this).isFile) " مع صورتك" else " (بدون صورة مختارة)"))
             val hasWf = rel.any { it.startsWith(".github/workflows/") }
             sb.appendLine(
                 if (hasWf) "ملف البناء: ملف المشروع الخاص سيُستخدم"
@@ -358,13 +374,16 @@ class ProjectActivity : AppCompatActivity() {
 
     private fun showBuildProgress(done: Int?, total: Int?) {
         val bar = binding.buildProgress
+        binding.buildRow.visibility = View.VISIBLE
         bar.visibility = View.GONE
         if (done == null || total == null || total <= 0) {
             bar.isIndeterminate = true
+            binding.buildPercent.text = "…"
         } else {
             bar.isIndeterminate = false
             bar.max = total
             bar.setProgressCompat(done, true)
+            binding.buildPercent.text = (done * 100 / total).toString() + "%"
         }
         bar.visibility = View.VISIBLE
     }
@@ -389,6 +408,7 @@ class ProjectActivity : AppCompatActivity() {
                     run == null -> {
                         binding.buildStatus.text = getString(R.string.build_status_none)
                         binding.buildProgress.visibility = View.GONE
+                        binding.buildPercent.text = "—"
                         if (repeatWhileRunning && pollTries < 60) {
                             pollRunnable?.let { handler.postDelayed(it, 12000) }
                         }
@@ -398,8 +418,9 @@ class ProjectActivity : AppCompatActivity() {
                             val stepNo = minOf(progress.done + 1, progress.total)
                             val stepName =
                                 if (progress.currentStep.isNotEmpty()) " — " + progress.currentStep else ""
+                            val pct = progress.done * 100 / progress.total
                             binding.buildStatus.text =
-                                "⏳ البناء قيد التشغيل: الخطوة " + stepNo + " من " + progress.total + stepName
+                                "⏳ " + pct + "% — الخطوة " + stepNo + " من " + progress.total + stepName
                             showBuildProgress(progress.done, progress.total)
                         } else {
                             binding.buildStatus.text = getString(R.string.build_status_running)
@@ -412,11 +433,13 @@ class ProjectActivity : AppCompatActivity() {
                     run.conclusion == "success" -> {
                         binding.buildStatus.text = getString(R.string.build_status_success)
                         showBuildProgress(1, 1)
+                        binding.buildPercent.text = "100%"
                         stopPolling()
                     }
                     else -> {
                         binding.buildStatus.text = getString(R.string.build_status_failure)
                         binding.buildProgress.visibility = View.GONE
+                        binding.buildPercent.text = "❌"
                         stopPolling()
                     }
                 }

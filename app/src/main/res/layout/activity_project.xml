@@ -182,14 +182,37 @@
                     android:textColor="@color/text_secondary" android:textSize="14sp"
                     android:visibility="gone" />
 
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/buildProgress"
+                <LinearLayout
+                    android:id="@+id/buildRow"
                     android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:visibility="gone"
-                    app:indicatorColor="@color/brand_build"
-                    app:trackThickness="8dp"
-                    app:trackCornerRadius="6dp" />
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:visibility="gone">
+
+                    <ImageButton
+                        android:id="@+id/btnRefreshBuild"
+                        android:layout_width="44dp" android:layout_height="44dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_refresh"
+                        android:contentDescription="@string/refresh_build" />
+
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/buildProgress"
+                        android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp" android:layout_marginEnd="10dp"
+                        app:indicatorColor="@color/brand_build"
+                        app:trackThickness="10dp"
+                        app:trackCornerRadius="8dp" />
+
+                    <TextView
+                        android:id="@+id/buildPercent"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:minWidth="52dp" android:gravity="center"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="17sp" android:textStyle="bold"
+                        android:text="0%" />
+                </LinearLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnInstall"

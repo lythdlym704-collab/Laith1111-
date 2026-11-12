@@ -103,4 +103,5 @@
     <string name="repo_create_failed">تعذّر إنشاء المستودع. تحقق من رمز الدخول والاتصال.</string>
     <string name="importing">جارٍ الاستيراد…</string>
     <string name="binary_file">هذا ملف ثنائي ولا يمكن تحريره كنص</string>
+    <string name="refresh_build">تحديث حالة البناء</string>
 </resources>

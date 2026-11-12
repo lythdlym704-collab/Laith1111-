@@ -185,16 +185,22 @@ object GitHubClient {
 
             val entries = JSONArray()
             val newPaths = files.map { it.first }.toSet()
+            val blobCache = HashMap<String, String>()
+            val digest = java.security.MessageDigest.getInstance("SHA-1")
             for ((i, pair) in files.withIndex()) {
                 val (path, bytes) = pair
                 onProgress?.invoke(i + 1, files.size)
-                val blobBody = JSONObject()
-                    .put("content", Base64.encodeToString(bytes, Base64.NO_WRAP))
-                    .put("encoding", "base64")
-                    .toString()
-                val br = request("POST", "$API/repos/$owner/$repo/git/blobs", token, blobBody)
-                if (br.code !in 200..299) return false
-                val blobSha = JSONObject(br.body).optString("sha")
+                val key = digest.digest(bytes).joinToString("") { "%02x".format(it) }
+                val cached = blobCache[key]
+                val blobSha = if (cached != null) cached else {
+                    val blobBody = JSONObject()
+                        .put("content", Base64.encodeToString(bytes, Base64.NO_WRAP))
+                        .put("encoding", "base64")
+                        .toString()
+                    val br = request("POST", "$API/repos/$owner/$repo/git/blobs", token, blobBody)
+                    if (br.code !in 200..299) return false
+                    JSONObject(br.body).optString("sha").also { blobCache[key] = it }
+                }
                 entries.put(
                     JSONObject().put("path", path).put("mode", "100644")
                         .put("type", "blob").put("sha", blobSha)
@@ -376,7 +382,10 @@ object GitHubClient {
             return UploadResult(false, "لا توجد ملفات للرفع. أضف ملفات التطبيق أولاً.")
         }
         val rel = userFiles.map { project.relativePath(context, it) }
-        val kind = ProjectKind.detect(rel)
+        val kind = ProjectKind.detect(rel) { path ->
+            val idx = rel.indexOf(path)
+            if (idx < 0) null else runCatching { userFiles[idx].readText() }.getOrNull()
+        }
 
         val files = mutableListOf<Pair<String, ByteArray>>()
         val deletions = mutableListOf<String>()
@@ -385,18 +394,22 @@ object GitHubClient {
             files.add(path to text.toByteArray(Charsets.UTF_8))
         }
 
-        if (kind == ProjectKind.ANDROID) {
+        var brandedManifests = 0
+        if (ProjectKind.isNative(kind)) {
             for ((f, r) in userFiles.zip(rel)) files.add(r to f.readBytes())
+            // تطبيق اسم التطبيق وصورته على المشروع نفسه
+            val iconBytes = project.iconFile(context).takeIf { it.isFile }?.readBytes()
+            brandedManifests = Branding.apply(files, project.appName.ifBlank { project.name }, iconBytes)
             val hasOwnWorkflow = rel.any {
                 it.startsWith(".github/workflows/") && (it.endsWith(".yml") || it.endsWith(".yaml"))
             }
             if (hasOwnWorkflow) {
                 deletions.add(".github/workflows/build-apk.yml")
             } else {
-                add(".github/workflows/build-apk.yml", AppTemplate.workflowAndroidYml())
+                add(".github/workflows/build-apk.yml", AppTemplate.workflowFor(kind))
             }
-            val relSet = rel.toSet()
-            deletions.addAll(AppTemplate.templatePaths.filter { it !in relSet })
+            val nowPaths = files.map { it.first }.toSet()
+            deletions.addAll(AppTemplate.templatePaths.filter { it !in nowPaths })
         } else {
             val appId = AppTemplate.appId(repo)
             val hasIcon = project.iconFile(context).isFile
@@ -469,10 +482,14 @@ object GitHubClient {
         val url = "https://github.com/" + user + "/" + repo
         val kindLabel = ProjectKind.label(kind)
         return if (ok) {
+            val brandNote = if (ProjectKind.isNative(kind)) {
+                if (brandedManifests > 0) "\nتم تطبيق اسم التطبيق وصورته على المشروع"
+                else "\nتنبيه: لم يُعثر على AndroidManifest بنشاط إطلاق لتطبيق الاسم والصورة"
+            } else ""
             UploadResult(
                 true,
                 "تم رفع " + files.size + " ملفاً في عملية واحدة وبدأ GitHub ببناء ملف APK\n" +
-                    "النوع: " + kindLabel + "\n" + url,
+                    "النوع: " + kindLabel + brandNote + "\n" + url,
                 url
             )
         } else {

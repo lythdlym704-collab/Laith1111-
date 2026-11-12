@@ -36,7 +36,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDone"
-            style="@style/Widget.ScriptStudio.Button.Build"
+            style="@style/Widget.ScriptStudio.Button.Gold"
             android:layout_width="200dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
