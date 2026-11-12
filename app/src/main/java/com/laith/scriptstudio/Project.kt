@@ -23,10 +23,16 @@ data class Project(
     fun userFilesDir(context: Context): File =
         File(dir(context), "files").apply { mkdirs() }
 
+    /** كل الملفات بما فيها داخل المجلدات الفرعية. */
     fun listUserFiles(context: Context): List<File> =
-        userFilesDir(context).listFiles { f -> f.isFile }
-            ?.sortedBy { it.name.lowercase() }
-            ?: emptyList()
+        userFilesDir(context).walkTopDown()
+            .filter { it.isFile }
+            .sortedBy { it.path.lowercase() }
+            .toList()
+
+    /** المسار النسبي للملف داخل المشروع (بفواصل /). */
+    fun relativePath(context: Context, file: File): String =
+        file.relativeTo(userFilesDir(context)).invariantSeparatorsPath
 
     fun toJson(): JSONObject = JSONObject()
         .put("id", id)

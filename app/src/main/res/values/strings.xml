@@ -49,7 +49,7 @@
     <string name="settings">الإعدادات</string>
 
     <string name="github_title">GitHub</string>
-    <string name="btn_github_upload">رفع المشروع إلى GitHub</string>
+    <string name="btn_github_upload">رفع الملفات وبناء APK</string>
     <string name="github_need_login">سجّل الدخول بـ GitHub من الشاشة الرئيسية أولاً</string>
     <string name="github_uploading">جارٍ الرفع إلى GitHub…</string>
 
@@ -78,8 +78,8 @@
 
     <string name="files_title">ملفات التطبيق</string>
     <string name="add_create">إنشاء ملف</string>
-    <string name="add_import">استيراد ملف من الجهاز</string>
-    <string name="no_files">لا توجد ملفات بعد. اضغط + ثم «إنشاء ملف» أو «استيراد ملف من الجهاز».</string>
+    <string name="add_import">استيراد ملف أو ZIP من الجهاز</string>
+    <string name="no_files">لا توجد ملفات بعد. اضغط + ثم «إنشاء ملف» أو «استيراد ملف أو ZIP من الجهاز».</string>
     <string name="file_name_hint">اسم الملف (مثل index.html)</string>
     <string name="file_code_hint">اكتب كود هذا الملف هنا…</string>
     <string name="btn_save_file">حفظ الملف</string>
@@ -87,7 +87,7 @@
     <string name="delete_file_q">هل تريد حذف هذا الملف؟</string>
     <string name="file_name_required">اكتب اسم الملف أولاً</string>
     <string name="import_failed">تعذّر استيراد الملف</string>
-    <string name="step2_hint">بعد إنشاء المشروع اضغط زر + داخل «ملفات التطبيق»: أنشئ ملفاً باسم وكود، أو استورد ملفات جاهزة من جهازك، ثم ارفع المشروع ليُبنى APK.</string>
+    <string name="step2_hint">بعد إنشاء المشروع اضغط زر + داخل «ملفات التطبيق»: أنشئ ملفاً باسم وكود، أو استورد ملفات أو ملف ZIP لمشروعك من جهازك، ثم اضغط «رفع الملفات وبناء APK». لا يبدأ أي بناء قبل ذلك.</string>
     <string name="workflow_scope_hint">
 
 تنبيه: فشل رفع ملف البناء التلقائي. سجّل الخروج ثم سجّل الدخول برمز جديد يحمل صلاحية workflow.</string>
@@ -95,4 +95,12 @@
     <string name="splash_name">Laith</string>
     <string name="splash_done">تم</string>
     <string name="splash_tagline">ابنِ تطبيقك من جوالك</string>
+
+    <string name="add_clear">حذف كل الملفات</string>
+    <string name="clear_files_q">هل تريد حذف كل ملفات هذا المشروع؟</string>
+    <string name="no_files_upload">أضف ملفات التطبيق أولاً ثم اضغط «رفع الملفات وبناء APK»</string>
+    <string name="repo_created">تم إنشاء المستودع على GitHub. أضف ملفاتك ثم اضغط «رفع الملفات وبناء APK».</string>
+    <string name="repo_create_failed">تعذّر إنشاء المستودع. تحقق من رمز الدخول والاتصال.</string>
+    <string name="importing">جارٍ الاستيراد…</string>
+    <string name="binary_file">هذا ملف ثنائي ولا يمكن تحريره كنص</string>
 </resources>

@@ -280,4 +280,82 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 """.trimIndent() + "\n"
+
+    /** مسارات ملفات القالب التي تُحذف من المستودع عندما يكون المشروع أندرويد أصلياً. */
+    val templatePaths = listOf(
+        "settings.gradle",
+        "build.gradle",
+        "gradle.properties",
+        "app/build.gradle",
+        "app/src/main/AndroidManifest.xml",
+        "app/src/main/java/com/scriptstudio/generated/MainActivity.kt",
+        "app/src/main/res/values/strings.xml",
+        "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+        "app/src/main/res/drawable/launcher_bg.xml",
+        "app/src/main/res/drawable/launcher_fg.xml",
+        "app/src/main/res/drawable/launcher_fg.png",
+        "app/src/main/assets/index.html",
+        "app.json",
+        "build-trigger.txt"
+    )
+
+    /**
+     * ملف بناء لمشروع أندرويد أصلي رفعه المستخدم كما هو:
+     * يجد مجلد المشروع، يستخدم gradlew إن وُجد، ويجمع أي APK ناتج.
+     */
+    fun workflowAndroidYml(): String = """
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-35 platforms;android-34 platforms;android-33 build-tools;35.0.0 build-tools;34.0.0 build-tools;33.0.2"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Build debug APK
+        run: |
+          SETTINGS=@D@(find . -path ./node_modules -prune -o \( -name settings.gradle -o -name settings.gradle.kts \) -print | grep -v '/build/' | head -n 1)
+          if [ -n "@D@SETTINGS" ]; then cd "@D@(dirname "@D@SETTINGS")"; fi
+          echo "Building in: @D@(pwd)"
+          if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
+            chmod +x gradlew && ./gradlew --no-daemon --stacktrace assembleDebug
+          elif [ -f gradle/wrapper/gradle-wrapper.properties ]; then
+            URL=@D@(grep distributionUrl gradle/wrapper/gradle-wrapper.properties | cut -d= -f2- | sed 's/\\//g')
+            gradle wrapper --gradle-distribution-url "@D@URL" && chmod +x gradlew && ./gradlew --no-daemon --stacktrace assembleDebug
+          else
+            gradle --no-daemon --stacktrace assembleDebug
+          fi
+      - name: Collect APK files
+        run: |
+          mkdir -p apk-out
+          find . -path "*/build/outputs/apk/*" -name "*.apk" -exec cp {} apk-out/ \;
+          ls -la apk-out
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-apk
+          path: apk-out/*.apk
+          if-no-files-found: error
+""".trimIndent().replace("@D@", "\$") + "\n"
 }

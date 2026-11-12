@@ -46,13 +46,21 @@ class EditFileActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.file_name_required, Toast.LENGTH_SHORT).show()
             return
         }
-        val name = rawName.replace(Regex("""[/\\:*?"<>|]"""), "_")
+        val name = rawName.replace('\\', '/').split('/')
+            .filter { it.isNotBlank() && it != "." }
+            .joinToString("/") { it.replace(Regex("""[:*?"<>|]"""), "_") }
+        if (name.isBlank() || name.split('/').any { it == ".." }) {
+            Toast.makeText(this, R.string.file_name_required, Toast.LENGTH_SHORT).show()
+            return
+        }
         val dir = p.userFilesDir(this)
         val old = originalName
         if (old != null && old != name) {
             File(dir, old).delete()
         }
-        File(dir, name).writeText(binding.inputFileCode.text?.toString().orEmpty())
+        val target = File(dir, name)
+        target.parentFile?.mkdirs()
+        target.writeText(binding.inputFileCode.text?.toString().orEmpty())
         Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
         finish()
     }

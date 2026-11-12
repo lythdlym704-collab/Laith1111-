@@ -95,11 +95,16 @@ class NewProjectActivity : AppCompatActivity() {
         binding.createProgress.visibility = View.VISIBLE
         binding.createStatus.text = getString(R.string.creating_repo)
         Thread {
-            val result = GitHubClient.uploadProject(this, project, token)
+            // إنشاء المستودع فقط — لا رفع ولا بناء قبل إضافة الملفات
+            val ok = GitHubClient.createRepoOnly(token, project)
             runOnUiThread {
                 binding.createProgress.visibility = View.GONE
                 binding.createStatus.text = ""
-                Toast.makeText(this, result.message, Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this,
+                    if (ok) R.string.repo_created else R.string.repo_create_failed,
+                    Toast.LENGTH_LONG
+                ).show()
                 openProject(project)
             }
         }.start()
