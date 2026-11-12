@@ -487,6 +487,66 @@ class ProjectActivity : AppCompatActivity() {
         }.start()
     }
 
+    private fun showResult(title: String, text: String, error: Boolean = false) {
+        binding.resultsTitle.text = title
+        binding.resultsText.text = text
+        binding.resultsText.setTextColor(
+            if (error) 0xFFFF6B6B.toInt() else getColor(R.color.code_text)
+        )
+        binding.btnCopy.visibility = View.VISIBLE
+        binding.btnAutoFix.visibility = View.GONE
+    }
+
+    /** يجلب سبب الفشل ويعرضه بالأحمر مع زر الإصلاح التلقائي. */
+    private fun showFailure(runId: Long) {
+        val p = project ?: return
+        val token = githubToken() ?: return
+        val user = githubUser() ?: return
+        val repo = p.githubRepo.ifBlank { return }
+        Thread {
+            val info = GitHubClient.failureInfo(token, user, repo, runId, cacheDir)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                if (info == null) {
+                    showResult("❌ فشل البناء", "تعذّر جلب تفاصيل الخطأ. اضغط سهم التحديث للمحاولة مجدداً.", true)
+                    return@runOnUiThread
+                }
+                if (info.step.isNotEmpty()) {
+                    binding.buildStatus.text = "❌ فشل البناء في الخطوة: " + info.step
+                }
+                lastErrorText = info.excerpt
+                showResult("❌ سبب فشل البناء", info.excerpt, true)
+                binding.btnAutoFix.visibility = View.VISIBLE
+            }
+        }.start()
+    }
+
+    private fun onAutoFix() {
+        if (busy) return
+        val p = project ?: return
+        val err = lastErrorText
+        binding.btnAutoFix.visibility = View.GONE
+        Thread {
+            val result = AutoFix.apply(this, p, err)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                refreshFiles()
+                if (result.fixes.isNotEmpty()) {
+                    val txt = "تم تطبيق الإصلاحات:\n• " + result.fixes.joinToString("\n• ") +
+                        (if (result.unfixable.isNotEmpty()) "\n\nتنبيهات:\n• " + result.unfixable.joinToString("\n• ") else "") +
+                        "\n\nجارٍ إعادة الرفع والبناء…"
+                    showResult("🔧 إصلاح تلقائي", txt)
+                    onUpload()
+                } else {
+                    val txt = if (result.unfixable.isNotEmpty())
+                        "لا يوجد إصلاح تلقائي لهذا الخطأ:\n• " + result.unfixable.joinToString("\n• ") + "\n\n" + err
+                    else "لم يتعرف التطبيق على إصلاح تلقائي لهذا الخطأ. راجع الأسطر التالية:\n\n" + err
+                    showResult("⚠️ يحتاج تدخلاً يدوياً", txt, true)
+                }
+            }
+        }.start()
+    }
+
     private fun setButtons(enabled: Boolean) {
         binding.btnCheck.isEnabled = enabled
         binding.btnAddFile.isEnabled = enabled
