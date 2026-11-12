@@ -104,4 +104,9 @@
     <string name="importing">جارٍ الاستيراد…</string>
     <string name="binary_file">هذا ملف ثنائي ولا يمكن تحريره كنص</string>
     <string name="refresh_build">تحديث حالة البناء</string>
+    <string name="btn_auto_fix">🔧 إصلاح تلقائي وإعادة البناء</string>
+    <string name="self_update_title">تحديث ستوديو السكربت</string>
+    <string name="btn_self_update">تنزيل وتثبيت آخر إصدار</string>
+    <string name="self_update_none">لا يوجد إصدار مبني متاح حالياً</string>
+    <string name="self_update_downloading">جارٍ تنزيل آخر إصدار…</string>
 </resources>

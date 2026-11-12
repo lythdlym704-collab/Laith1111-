@@ -16,13 +16,11 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.laith.scriptstudio.databinding.ActivityProjectBinding
 import com.laith.scriptstudio.databinding.ItemFileBinding
 import java.io.File
-import java.util.zip.ZipInputStream
 
 class ProjectActivity : AppCompatActivity() {
 
@@ -32,6 +30,7 @@ class ProjectActivity : AppCompatActivity() {
     private var busy = false
     private var pollRunnable: Runnable? = null
     private var pollTries = 0
+    private var lastErrorText: String = ""
 
     private val importFile =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -55,6 +54,7 @@ class ProjectActivity : AppCompatActivity() {
         binding.btnCopy.setOnClickListener { copyResult() }
         binding.btnGithubUpload.setOnClickListener { onUpload() }
         binding.btnInstall.setOnClickListener { onInstall() }
+        binding.btnAutoFix.setOnClickListener { onAutoFix() }
         binding.btnRefreshBuild.setOnClickListener {
             binding.btnRefreshBuild.animate().rotationBy(360f).setDuration(600).start()
             checkBuildOnce()
@@ -464,92 +464,25 @@ class ProjectActivity : AppCompatActivity() {
         binding.progress.visibility = View.VISIBLE
         binding.buildStatus.text = getString(R.string.downloading_apk)
         Thread {
-            var apk: File? = null
             val run = GitHubClient.latestSuccessfulRun(token, user, repo)
-            if (run != null) {
-                val url = GitHubClient.latestArtifactUrl(token, user, repo, run.id)
-                if (url != null) {
-                    val zip = File(cacheDir, "apk/artifact.zip")
-                    if (GitHubClient.downloadToFile(token, url, zip)) {
-                        apk = unzipApk(zip, File(cacheDir, "apk"))
-                    }
-                }
-            }
             runOnUiThread {
-                busy = false
-                setButtons(true)
-                binding.progress.visibility = View.GONE
-                binding.progress.isIndeterminate = false
-                if (apk != null && apk.isFile) {
-                    binding.buildStatus.text = getString(R.string.build_status_success)
-                    launchInstaller(apk)
-                } else {
+                if (run == null) {
+                    busy = false
+                    setButtons(true)
+                    binding.progress.visibility = View.GONE
+                    binding.progress.isIndeterminate = false
                     binding.buildStatus.text = getString(R.string.install_failed)
-                    Snackbar.make(binding.root, R.string.install_failed, Snackbar.LENGTH_LONG).show()
-                }
-            }
-        }.start()
-    }
-
-    private fun unzipApk(zip: File, outDir: File): File? {
-        return try {
-            outDir.mkdirs()
-            ZipInputStream(zip.inputStream()).use { stream ->
-                var entry = stream.nextEntry
-                while (entry != null) {
-                    if (!entry.isDirectory && entry.name.endsWith(".apk")) {
-                        val out = File(outDir, "app.apk")
-                        out.outputStream().use { stream.copyTo(it) }
-                        return out
-                    }
-                    entry = stream.nextEntry
-                }
-            }
-            null
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun launchInstaller(apk: File) {
-        try {
-            val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apk)
-            val intent = Intent(Intent.ACTION_VIEW)
-                .setDataAndType(uri, "application/vnd.android.package-archive")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            startActivity(intent)
-        } catch (e: Exception) {
-            Toast.makeText(this, R.string.install_failed, Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun showResult(title: String, text: String, error: Boolean = false) {
-        binding.resultsTitle.text = title
-        binding.resultsText.text = text
-        binding.resultsText.setTextColor(
-            if (error) 0xFFFF6B6B.toInt() else getColor(R.color.code_text)
-        )
-        binding.btnCopy.visibility = View.VISIBLE
-    }
-
-    /** يجلب سبب الفشل ويعرضه بالأحمر. */
-    private fun showFailure(runId: Long) {
-        val p = project ?: return
-        val token = githubToken() ?: return
-        val user = githubUser() ?: return
-        val repo = p.githubRepo.ifBlank { return }
-        Thread {
-            val info = GitHubClient.failureInfo(token, user, repo, runId, cacheDir)
-            runOnUiThread {
-                if (isFinishing || isDestroyed) return@runOnUiThread
-                if (info == null) {
-                    showResult("❌ فشل البناء", "تعذّر جلب تفاصيل الخطأ. اضغط سهم التحديث للمحاولة مجدداً.", true)
                     return@runOnUiThread
                 }
-                if (info.step.isNotEmpty()) {
-                    binding.buildStatus.text = "❌ فشل البناء في الخطوة: " + info.step
+                ApkInstaller.downloadAndInstall(this, token, user, repo, run.id) { ok ->
+                    busy = false
+                    setButtons(true)
+                    binding.progress.visibility = View.GONE
+                    binding.progress.isIndeterminate = false
+                    binding.buildStatus.text =
+                        if (ok) getString(R.string.build_status_success) else getString(R.string.install_failed)
+                    if (!ok) Snackbar.make(binding.root, R.string.install_failed, Snackbar.LENGTH_LONG).show()
                 }
-                showResult("❌ سبب فشل البناء", info.excerpt, true)
             }
         }.start()
     }

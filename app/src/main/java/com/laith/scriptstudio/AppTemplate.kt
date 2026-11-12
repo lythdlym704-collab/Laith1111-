@@ -258,6 +258,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -330,6 +335,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "11"
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -346,6 +356,7 @@ jobs:
       - name: Build debug APK
         run: |
           set -e
+          ROOT=@D@(pwd)
           rm -f local.properties
           mkdir -p ~/.gradle
           echo "org.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
@@ -378,6 +389,11 @@ jobs:
             3) export JAVA_HOME="@D@JAVA_HOME_8_X64"; GV=5.6.4 ;;
             *) export JAVA_HOME="@D@JAVA_HOME_17_X64"; GV=8.7 ;;
           esac
+          if [ -f "@D@ROOT/.scriptstudio/java" ]; then
+            J=@D@(tr -dc '0-9' < "@D@ROOT/.scriptstudio/java")
+            V="JAVA_HOME_@D@{J}_X64"
+            if [ -n "@D@{!V}" ]; then export JAVA_HOME="@D@{!V}"; fi
+          fi
           export PATH="@D@JAVA_HOME/bin:@D@PATH"
           java -version
           if [ -f gradlew ] && [ -f gradle/wrapper/gradle-wrapper.jar ]; then
@@ -428,6 +444,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -487,6 +508,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:

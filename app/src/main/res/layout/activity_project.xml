@@ -146,6 +146,14 @@
                     android:lineSpacingMultiplier="1.25"
                     android:text="@string/results_placeholder"
                     android:textIsSelectable="true" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAutoFix"
+                    style="@style/Widget.ScriptStudio.Button.Gold"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:visibility="gone"
+                    android:text="@string/btn_auto_fix" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

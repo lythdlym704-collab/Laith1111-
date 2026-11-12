@@ -10,6 +10,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.laith.scriptstudio.databinding.ActivityMainBinding
 import com.laith.scriptstudio.databinding.ItemProjectBinding
 
+object SelfUpdate {
+    const val OWNER = "lythdlym704-collab"
+    const val REPO = "Laith1111-"
+    const val BRANCH = "ccr-8cb3706d-ybp81b"
+}
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -31,12 +37,46 @@ class MainActivity : AppCompatActivity() {
                 refreshGithub()
             }
         }
+        binding.btnSelfUpdate.setOnClickListener { selfUpdate() }
     }
+
+    private fun selfUpdate() {
+        val prefs = getSharedPreferences("app", Context.MODE_PRIVATE)
+        val token = prefs.getString("github_token", null)
+        if (token == null) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            return
+        }
+        binding.btnSelfUpdate.isEnabled = false
+        binding.updateStatus.text = getString(R.string.self_update_downloading)
+        Thread {
+            val run = GitHubClient.latestSuccessfulRun(
+                token, SelfUpdate.OWNER, SelfUpdate.REPO, SelfUpdate.BRANCH
+            )
+            runOnUiThread {
+                if (run == null) {
+                    binding.updateStatus.text = getString(R.string.self_update_none)
+                    binding.btnSelfUpdate.isEnabled = true
+                } else {
+                    ApkInstaller.downloadAndInstall(this, token, SelfUpdate.OWNER, SelfUpdate.REPO, run.id) { ok ->
+                        binding.btnSelfUpdate.isEnabled = true
+                        binding.updateStatus.text =
+                            if (ok) "تم التنزيل — أكمل التثبيت" else getString(R.string.install_failed)
+                    }
+                }
+            }
+        }.start()
+    }
+
+    private fun currentVersion(): String = try {
+        packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+    } catch (e: Exception) { "" }
 
     override fun onResume() {
         super.onResume()
         refreshGithub()
         refreshProjects()
+        binding.updateStatus.text = "الإصدار الحالي: " + currentVersion()
     }
 
     private fun refreshGithub() {

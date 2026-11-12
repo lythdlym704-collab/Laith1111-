@@ -55,6 +55,10 @@ object GitHubClient {
         }
     }
 
+    private fun isPng(b: ByteArray): Boolean =
+        b.size > 8 && b[0] == 0x89.toByte() && b[1] == 0x50.toByte() &&
+            b[2] == 0x4E.toByte() && b[3] == 0x47.toByte()
+
     fun login(token: String): String? {
         return try {
             val r = request("GET", "$API/user", token)
@@ -245,8 +249,12 @@ object GitHubClient {
     fun latestRun(token: String, owner: String, repo: String): RunInfo? =
         fetchRun("$API/repos/$owner/$repo/actions/runs?per_page=1", token)
 
-    fun latestSuccessfulRun(token: String, owner: String, repo: String): RunInfo? =
-        fetchRun("$API/repos/$owner/$repo/actions/runs?status=success&per_page=1", token)
+    fun latestSuccessfulRun(token: String, owner: String, repo: String, branch: String? = null): RunInfo? =
+        fetchRun(
+            "$API/repos/$owner/$repo/actions/runs?status=success&per_page=1" +
+                (if (branch != null) "&branch=$branch" else ""),
+            token
+        )
 
     private fun fetchRun(url: String, token: String): RunInfo? {
         return try {
@@ -468,7 +476,14 @@ object GitHubClient {
                     runCatching { f.readText() }.getOrNull()?.let { userWorkflows.add(r to it) }
                     continue
                 }
-                files.add(r to f.readBytes())
+                var bytes = f.readBytes()
+                // فحص استباقي: صورة png ليست PNG حقيقية تُفشل البناء → تُصلَّح قبل الرفع
+                if (r.lowercase().endsWith(".png") && !r.lowercase().endsWith(".9.png") &&
+                    r.contains("/res/") && !isPng(bytes)
+                ) {
+                    if (AutoFix.repairImage(f)) bytes = f.readBytes()
+                }
+                files.add(r to bytes)
             }
             // تطبيق اسم التطبيق وصورته على المشروع نفسه (يستبدل الموجود في الكود)
             val appName = project.appName.ifBlank { project.name }
